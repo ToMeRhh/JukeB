@@ -47,24 +47,34 @@ Security model: home LAN only. No login on the web UI. The HA webhook needs no
 token, so no secrets live on the ESP32 except WiFi credentials. The HA webhook
 keeps its default `local_only: true`.
 
-## 4. Firmware modules
+## 4. Repository layout and firmware modules
+
+The repository will hold more than the firmware later, so each part lives in its
+own top-level folder:
 
 ```
-platformio.ini
-src/main.cpp                  wiring only: construct modules, call loop()
-src/TagReader.{h,cpp}         RC522 polling, presence debounce, placed/removed callbacks
-src/TagRegistry.{h,cpp}       pure logic: tag map <-> JSON, lookup, add/update/remove
-src/Settings.{h,cpp}          pure logic: settings struct <-> JSON, defaults, validation
-src/HaPayload.{h,cpp}         pure logic: builds the webhook JSON payload
-src/HaClient.{h,cpp}          POSTs a payload, one retry, reports result
-src/WebApi.{h,cpp}            HTTP routes; binds registry/settings/reader to the server
-src/WifiSetup.{h,cpp}         STA connect with timeout, else AP + captive portal
-data/index.html               single-file UI (vanilla JS, no build step) on LittleFS
-homeassistant/jukebox_automation.yaml
-test/test_registry/           native unit tests
-test/test_settings/           native unit tests
-test/test_haclient/           native unit tests (payload building only)
-README.md                     flashing, first setup, HA setup, curl checklist
+README.md                     project overview, quick start, links
+CLAUDE.md                     guidance for AI-assisted work in this repo
+docs/superpowers/specs/       design specs
+docs/superpowers/plans/       implementation plans
+firmware/                     PlatformIO project (everything below is relative to it)
+  platformio.ini
+  src/main.cpp                wiring only: construct modules, call loop()
+  src/TagReader.{h,cpp}       RC522 polling, presence debounce, placed/removed callbacks
+  src/TagRegistry.{h,cpp}     pure logic: tag map <-> JSON, lookup, add/update/remove
+  src/Settings.{h,cpp}        pure logic: settings struct <-> JSON, defaults, validation
+  src/HaPayload.{h,cpp}       pure logic: builds the webhook JSON payload
+  src/HaClient.{h,cpp}        POSTs a payload, one retry, reports result
+  src/WebApi.{h,cpp}          HTTP routes; binds registry/settings/reader to the server
+  src/WifiSetup.{h,cpp}       STA connect with timeout, else AP + captive portal
+  data/index.html             single-file UI (vanilla JS, no build step) on LittleFS
+  test/test_registry/         native unit tests
+  test/test_settings/         native unit tests
+  test/test_hapayload/        native unit tests
+  README.md                   flashing, first setup, curl checklist
+homeassistant/
+  jukebox_automation.yaml     the webhook automation
+  README.md                   how to install it, how to migrate to Music Assistant
 ```
 
 Rule: `TagRegistry`, `Settings` and `HaPayload` must not
