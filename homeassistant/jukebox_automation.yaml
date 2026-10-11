@@ -1,0 +1,54 @@
+# Jukebox webhook automation.
+# Import: Settings > Automations > (⋮) > Edit in YAML, paste this, save.
+# The webhook_id must match the "Webhook ID" in the jukebox settings page.
+alias: Jukebox
+description: Plays media on a Cast speaker when the RFID jukebox scans a tag
+mode: queued
+triggers:
+  - trigger: webhook
+    webhook_id: jukebox
+    allowed_methods:
+      - POST
+    local_only: true
+conditions: []
+actions:
+  - choose:
+      - conditions: "{{ trigger.json.event == 'play' }}"
+        sequence:
+          - if: "{{ trigger.json.volume is defined }}"
+            then:
+              - action: media_player.volume_set
+                target:
+                  entity_id: "{{ trigger.json.player }}"
+                data:
+                  volume_level: "{{ trigger.json.volume }}"
+          - action: media_player.play_media
+            target:
+              entity_id: "{{ trigger.json.player }}"
+            data:
+              media_content_id: "{{ trigger.json.uri }}"
+              media_content_type: "{{ trigger.json.content_type }}"
+          - if: "{{ trigger.json.shuffle }}"
+            then:
+              - action: media_player.shuffle_set
+                target:
+                  entity_id: "{{ trigger.json.player }}"
+                data:
+                  shuffle: true
+                continue_on_error: true
+      - conditions: "{{ trigger.json.event == 'pause' }}"
+        sequence:
+          - action: media_player.media_pause
+            target:
+              entity_id: "{{ trigger.json.player }}"
+      - conditions: "{{ trigger.json.event == 'stop' }}"
+        sequence:
+          - action: media_player.media_stop
+            target:
+              entity_id: "{{ trigger.json.player }}"
+      - conditions: "{{ trigger.json.event == 'test' }}"
+        sequence:
+          - action: persistent_notification.create
+            data:
+              title: Jukebox
+              message: Jukebox connected and the webhook works.
