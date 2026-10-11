@@ -70,8 +70,19 @@ void test_test_payload() {
   TEST_ASSERT_EQUAL_STRING("{\"event\":\"test\"}", HaPayload::test().c_str());
 }
 
+void test_has_player_false_when_nothing_configured() {
+  Settings s;  // no players, no default
+  Tag t = tag();
+  TEST_ASSERT_FALSE(HaPayload::hasPlayer(t, s));
+  t.player = "media_player.kids";
+  TEST_ASSERT_TRUE(HaPayload::hasPlayer(t, s));
+  t.player = "";
+  TEST_ASSERT_TRUE(HaPayload::hasPlayer(t, settings()));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_has_player_false_when_nothing_configured);
   RUN_TEST(test_effective_player_falls_back_to_default);
   RUN_TEST(test_effective_volume);
   RUN_TEST(test_play_payload_with_default_volume_and_player);

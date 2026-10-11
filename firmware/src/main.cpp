@@ -29,16 +29,31 @@ void recordResult(const HaResult& result) {
   state.lastResult = result;
 }
 
+// Reports a local failure (nothing was sent) the same way as a failed POST.
+void recordLocalFailure(const char* message) {
+  HaResult r;
+  r.any = true;
+  r.ok = false;
+  r.message = message;
+  r.atMillis = millis();
+  Serial.printf("[ha] skipped: %s\n", message);
+  recordResult(r);
+  led.blink(2, 40, 60);
+}
+
 // Sends "play" for a known tag. Blocking; call from loop() only.
 void sendPlay(const std::string& uid) {
   std::string url, payload;
+  bool noPlayer = false;
   {
     std::lock_guard<std::mutex> lock(state.mutex);
     Tag tag;
     if (!state.registry.find(uid, tag)) return;
+    noPlayer = !HaPayload::hasPlayer(tag, state.settings);
     url = state.settings.webhookUrl();
     payload = HaPayload::play(uid, tag, state.settings);
   }
+  if (noPlayer) return recordLocalFailure("no player configured for this tag (set a default player in Settings)");
   const HaResult r = HaClient::send(url, payload);
   recordResult(r);
   if (!r.ok) led.blink(2, 40, 60);
@@ -46,15 +61,18 @@ void sendPlay(const std::string& uid) {
 
 void sendControl(const std::string& uid) {
   std::string url, payload;
+  bool noPlayer = false;
   {
     std::lock_guard<std::mutex> lock(state.mutex);
     if (state.settings.onRemove == Settings::OnRemove::None) return;
     Tag tag;
     if (!state.registry.find(uid, tag)) return;
+    noPlayer = !HaPayload::hasPlayer(tag, state.settings);
     const char* event = state.settings.onRemove == Settings::OnRemove::Pause ? "pause" : "stop";
     url = state.settings.webhookUrl();
     payload = HaPayload::control(event, uid, tag, state.settings);
   }
+  if (noPlayer) return recordLocalFailure("no player configured for this tag (set a default player in Settings)");
   const HaResult r = HaClient::send(url, payload);
   recordResult(r);
   if (!r.ok) led.blink(2, 40, 60);
@@ -111,11 +129,13 @@ void processOneCommand() {
       reader.setGraceMs(grace);
       break;
     }
-    case Command::Type::Reboot:
+    case Command::Type::Reboot: {
       Serial.println("[main] reboot requested");
       delay(200);
+      std::lock_guard<std::mutex> lock(state.mutex);  // let an in-flight config write finish
       ESP.restart();
       break;
+    }
   }
 }
 

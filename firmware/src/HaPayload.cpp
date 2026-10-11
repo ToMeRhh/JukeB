@@ -13,6 +13,10 @@ float effectiveVolume(const Tag& tag, const Settings& s) {
   return tag.volume;  // 0..1 or kVolumeNoChange
 }
 
+bool hasPlayer(const Tag& tag, const Settings& s) {
+  return !effectivePlayer(tag, s).empty();
+}
+
 static std::string serialize(const JsonDocument& doc) {
   std::string out;
   serializeJson(doc, out);

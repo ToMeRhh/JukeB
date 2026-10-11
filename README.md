@@ -34,7 +34,7 @@ ESP32 dev board + RFID-RC522 on VSPI:
 
 ## Quick start
 
-1. Flash the firmware and the web UI: see `firmware/README.md`.
+1. Flash the firmware (the web UI is built into it): see `firmware/README.md`.
 2. Join the `Jukebox-Setup` WiFi network, enter your WiFi credentials in the portal.
 3. Install the automation from `homeassistant/jukebox_automation.yaml`.
 4. Open `http://jukebox.local`, set the Home Assistant URL and your speaker entity IDs.

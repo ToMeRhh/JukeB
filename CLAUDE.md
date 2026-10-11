@@ -13,8 +13,9 @@ Implementation plan: `docs/superpowers/plans/2026-10-11-rfid-jukebox.md`.
 
 ## Layout
 
-- `firmware/` PlatformIO project. `src/` firmware, `data/` files uploaded to LittleFS
-  (the web UI), `test/` native unit tests.
+- `firmware/` PlatformIO project. `src/` firmware, `data/index.html` the web UI
+  (embedded into the firmware image via `board_build.embed_txtfiles`), `test/` native
+  unit tests.
 - `homeassistant/` the webhook automation YAML and its README.
 - `docs/` specs and plans.
 
@@ -26,13 +27,13 @@ All commands run from `firmware/`. PlatformIO lives at `~/.platformio/penv/bin/p
 
 - `pio test -e native` runs the host unit tests (no board needed). Run this after every change to a pure-logic module.
 - `pio run -e esp32dev` compiles the firmware.
-- `pio run -e esp32dev -t buildfs` builds the LittleFS image from `data/`.
-- `pio run -e esp32dev -t upload` / `-t uploadfs` flash firmware / filesystem.
+- `pio run -e esp32dev -t upload` flashes firmware including the web UI. Never run
+  `uploadfs`: LittleFS holds only the user's tags and settings and must not be erased.
 - `pio device monitor` serial log at 115200.
 
 ## Conventions
 
-- Pure-logic modules (`TagRegistry`, `Settings`, `HaPayload`, `PresenceTracker`) must
+- Pure-logic modules (`TagRegistry`, `Settings`, `HaPayload`, `PresenceTracker`, `RetrySchedule`) must
   not include Arduino or ESP-IDF headers. They are compiled for the host by the
   `native` environment (`build_src_filter` in `platformio.ini`) and unit-tested with
   Unity. Put new logic there first, test it there, then wire it into Arduino code.

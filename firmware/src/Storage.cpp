@@ -36,8 +36,7 @@ bool Storage::writeFile(const char* path, const std::string& data) {
     LittleFS.remove(tmp);
     return false;
   }
-  LittleFS.remove(path);
-  return LittleFS.rename(tmp, path);
+  return LittleFS.rename(tmp, path);  // littlefs rename replaces the destination atomically
 }
 
 void Storage::quarantine(const char* path) {

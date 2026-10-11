@@ -67,7 +67,7 @@ firmware/                     PlatformIO project (everything below is relative t
   src/HaClient.{h,cpp}        POSTs a payload, one retry, reports result
   src/WebApi.{h,cpp}          HTTP routes; binds registry/settings/reader to the server
   src/WifiSetup.{h,cpp}       STA connect with timeout, else AP + captive portal
-  data/index.html             single-file UI (vanilla JS, no build step) on LittleFS
+  data/index.html             single-file UI (vanilla JS, no build step), embedded in the firmware image
   test/test_registry/         native unit tests
   test/test_settings/         native unit tests
   test/test_hapayload/        native unit tests
@@ -128,6 +128,9 @@ current on 2026-10-11). HTTP client and LittleFS come from the Arduino core.
   This string is the registry key.
 - Runs in `loop()` with a millis-based schedule (no separate FreeRTOS task) to
   keep the SPI bus single-owner. Callbacks are invoked from `loop()`.
+- Time during which `loop()` was blocked (a gap of more than 500 ms between two
+  polls, e.g. a slow webhook POST) does not count toward the grace period, so a
+  single missed read right after a blocking call cannot produce a false removal.
 
 ### 4.3 TagRegistry
 
@@ -212,6 +215,9 @@ Stored at `/settings.json`:
 
 - `onPlaced(uid)`: record `lastScanned = {uid, millis}`. If the UID is known →
   LED one blink, send `play`. If unknown → LED three blinks, nothing sent.
+- If a known tag has no player (neither the tag nor `default_player` names one),
+  nothing is sent; `lastResult` records "no player configured" and the LED
+  double-blinks, so the UI never shows "ok" for a request that could not play.
 - `onRemoved(uid)`: if `on_remove != none` and the UID is known → send
   `pause` or `stop` to the tag's effective player. (Grace period is already
   applied by the reader, so a brief lift does nothing.)
@@ -228,10 +234,16 @@ Stored at `/settings.json`:
 - If STA drops, the core's auto-reconnect is used; if there is no connection
   for 60 s, fall back to setup mode without touching saved data. A later
   successful save of WiFi settings reboots into STA.
+- Setup mode with an SSID configured keeps the station side alive (AP+STA) and
+  retries the home network every 30 s; as soon as it connects, the AP is closed
+  and the box is back in STA mode. A router that comes back minutes after a
+  power cut is therefore recovered from without a power-cycle.
 
 ### 4.8 WebApi
 
-All JSON. Static `index.html` served from LittleFS at `/`.
+All JSON. `index.html` is embedded in the firmware image (`board_build.embed_txtfiles`)
+and served at `/`; LittleFS holds only `tags.json` and `settings.json`, so flashing a
+new firmware never erases the user's configuration.
 
 | Method | Path | Purpose |
 |-------|------|---------|

@@ -3,6 +3,15 @@
 PresenceTracker::Result PresenceTracker::update(bool seen, const std::string& uid, uint32_t nowMs) {
   Result r;
 
+  // Time during which nobody polled (the caller was blocked) must not count as
+  // "tag absent": shift the last-seen mark forward by the gap.
+  if (hasUpdated_ && present_) {
+    const uint32_t gap = nowMs - lastUpdateMs_;
+    if (gap > maxGapMs_) lastSeenMs_ += gap;
+  }
+  hasUpdated_ = true;
+  lastUpdateMs_ = nowMs;
+
   if (seen && present_ && uid == currentUid_) {
     lastSeenMs_ = nowMs;
     candidateHits_ = 0;

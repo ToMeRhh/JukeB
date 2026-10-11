@@ -119,8 +119,22 @@ void test_grace_setting_is_respected() {
   TEST_ASSERT_TRUE(r.removed);
 }
 
+void test_long_gap_between_polls_does_not_count_toward_grace() {
+  // loop() was blocked (e.g. a 20 s failed webhook POST) between two polls.
+  PresenceTracker t = tracker();
+  seenRange(t, A, 0, 1000);
+  PresenceTracker::Result r = t.update(false, "", 21000);  // first poll after the gap: one missed read
+  TEST_ASSERT_FALSE(r.removed);
+  TEST_ASSERT_TRUE(t.present());
+  r = missRange(t, 21100, 22400);  // grace counts from the end of the gap
+  TEST_ASSERT_FALSE(r.removed);
+  r = t.update(false, "", 22500);
+  TEST_ASSERT_TRUE(r.removed);
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_long_gap_between_polls_does_not_count_toward_grace);
   RUN_TEST(test_single_sighting_is_not_placed);
   RUN_TEST(test_two_consecutive_sightings_place);
   RUN_TEST(test_miss_between_sightings_resets_count);

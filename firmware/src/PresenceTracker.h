@@ -16,6 +16,9 @@ class PresenceTracker {
 
   void setGraceMs(uint32_t ms) { graceMs_ = ms; }
   void setRequiredHits(uint8_t hits) { requiredHits_ = hits == 0 ? 1 : hits; }
+  // A gap between two update() calls longer than this means the caller was
+  // blocked (e.g. a slow webhook POST); that time does not count toward the grace period.
+  void setMaxGapMs(uint32_t ms) { maxGapMs_ = ms; }
 
   Result update(bool seen, const std::string& uid, uint32_t nowMs);
 
@@ -25,6 +28,9 @@ class PresenceTracker {
  private:
   uint32_t graceMs_ = 1500;
   uint8_t requiredHits_ = 2;
+  uint32_t maxGapMs_ = 500;
+  bool hasUpdated_ = false;
+  uint32_t lastUpdateMs_ = 0;
 
   bool present_ = false;
   std::string currentUid_;

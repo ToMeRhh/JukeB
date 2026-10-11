@@ -4,8 +4,10 @@
 #include <WiFi.h>
 
 void WifiSetup::begin(const std::string& ssid, const std::string& pass, const std::string& hostname) {
+  ssid_ = ssid;
+  pass_ = pass;
   hostname_ = hostname;
-  if (ssid.empty()) {
+  if (ssid_.empty()) {
     Serial.println("[wifi] no SSID configured, starting setup AP");
     startAp();
     return;
@@ -15,8 +17,8 @@ void WifiSetup::begin(const std::string& ssid, const std::string& pass, const st
   WiFi.mode(WIFI_STA);
   WiFi.setHostname(hostname_.c_str());
   WiFi.setAutoReconnect(true);
-  WiFi.begin(ssid.c_str(), pass.c_str());
-  Serial.printf("[wifi] connecting to %s", ssid.c_str());
+  WiFi.begin(ssid_.c_str(), pass_.c_str());
+  Serial.printf("[wifi] connecting to %s", ssid_.c_str());
 
   const uint32_t start = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - start < kBootConnectMs) {
@@ -26,14 +28,23 @@ void WifiSetup::begin(const std::string& ssid, const std::string& pass, const st
   Serial.println();
 
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[wifi] connection failed, starting setup AP");
+    Serial.println("[wifi] connection failed, starting setup AP (will keep retrying)");
     startAp();
     return;
   }
+  onConnected();
+}
 
+void WifiSetup::onConnected() {
+  if (mode_ == Mode::Ap) {
+    dns_.stop();
+    WiFi.mode(WIFI_STA);  // drop the setup AP, keep the station link
+  }
   mode_ = Mode::Sta;
   disconnectedSince_ = 0;
+  retry_.reset();
   Serial.printf("[wifi] connected, ip %s\n", WiFi.localIP().toString().c_str());
+  MDNS.end();
   if (MDNS.begin(hostname_.c_str())) {
     MDNS.addService("http", "tcp", 80);
     Serial.printf("[wifi] mDNS %s.local\n", hostname_.c_str());
@@ -41,17 +52,30 @@ void WifiSetup::begin(const std::string& ssid, const std::string& pass, const st
 }
 
 void WifiSetup::startAp() {
-  WiFi.mode(WIFI_AP);
+  // With an SSID configured keep the station side alive so we can retry it.
+  WiFi.mode(ssid_.empty() ? WIFI_AP : WIFI_AP_STA);
   WiFi.softAP(kApSsid);
   dns_.setErrorReplyCode(DNSReplyCode::NoError);
   dns_.start(53, "*", WiFi.softAPIP());
   mode_ = Mode::Ap;
+  retry_.reset();
   Serial.printf("[wifi] AP %s up, ip %s\n", kApSsid, WiFi.softAPIP().toString().c_str());
 }
 
 void WifiSetup::loop(uint32_t now) {
   if (mode_ == Mode::Ap) {
     dns_.processNextRequest();
+    if (ssid_.empty()) return;
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("[wifi] home network is back, leaving setup mode");
+      onConnected();
+      return;
+    }
+    if (retry_.due(now)) {
+      retry_.mark(now);
+      Serial.printf("[wifi] retrying %s\n", ssid_.c_str());
+      WiFi.begin(ssid_.c_str(), pass_.c_str());
+    }
     return;
   }
   if (WiFi.status() == WL_CONNECTED) {

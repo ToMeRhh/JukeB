@@ -10,15 +10,13 @@ PlatformIO CLI: `~/.platformio/penv/bin/pio` (or `pio` if on your PATH). Run fro
 |---------|------|
 | `pio test -e native` | host unit tests for the pure-logic modules |
 | `pio run -e esp32dev` | compile firmware |
-| `pio run -e esp32dev -t upload` | flash firmware |
-| `pio run -e esp32dev -t buildfs` | build the LittleFS image from `data/` |
-| `pio run -e esp32dev -t uploadfs` | flash the LittleFS image (the web UI) |
+| `pio run -e esp32dev -t upload` | flash firmware (includes the web UI) |
 | `pio device monitor` | serial log, 115200 baud |
 
-Flash both the firmware and the filesystem the first time, and again whenever
-`data/index.html` changes. Tags and settings live on the same filesystem; a
-`uploadfs` erases them, so export `http://jukebox.local/api/tags` first if you
-care about them.
+The web UI (`data/index.html`) is embedded into the firmware image at build time,
+so a normal `upload` is all you ever need. Tags and settings live on a LittleFS
+partition that firmware uploads never touch, and it is formatted automatically on
+first boot. Do **not** run `uploadfs`: it would erase your tags and settings.
 
 ## Wiring
 

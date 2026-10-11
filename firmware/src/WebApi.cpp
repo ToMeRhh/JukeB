@@ -2,16 +2,27 @@
 
 #include <ArduinoJson.h>
 #include <AsyncJson.h>
-#include <LittleFS.h>
 #include <WiFi.h>
 
 #include <cstdlib>
 #include <cstring>
 
+// data/index.html is embedded into the firmware image (board_build.embed_txtfiles),
+// so a UI update never touches the LittleFS partition that holds the config.
+extern const uint8_t kIndexHtmlStart[] asm("_binary_data_index_html_start");
+
 namespace {
 
 constexpr size_t kMaxBody = 8192;
 constexpr const char* kJson = "application/json";
+constexpr const char* kHtml = "text/html";
+
+void sendIndex(AsyncWebServerRequest* request) {
+  static const size_t len = strlen(reinterpret_cast<const char*>(kIndexHtmlStart));
+  AsyncWebServerResponse* res = request->beginResponse(200, kHtml, kIndexHtmlStart, len);
+  res->addHeader("Cache-Control", "no-cache");
+  request->send(res);
+}
 
 // In AP mode, any request for a host other than our own IP is a captive-portal
 // probe (or a user typing a random site): redirect it to the setup page.
@@ -95,7 +106,8 @@ void WebApi::registerRoutes() {
   server_.on(AsyncURIMatcher::prefix("/api/tags/"), HTTP_DELETE, [this](AsyncWebServerRequest* r) { handleDeleteTag(r); });
   server_.on(AsyncURIMatcher::prefix("/api/tags/"), HTTP_POST, [this](AsyncWebServerRequest* r) { handlePlayTag(r); });
 
-  server_.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("no-cache");
+  server_.on("/", HTTP_GET, sendIndex);
+  server_.on("/index.html", HTTP_GET, sendIndex);
 
   server_.addHandler(new CaptiveHandler()).setFilter(ON_AP_FILTER);
 
