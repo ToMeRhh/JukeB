@@ -55,7 +55,8 @@ src/main.cpp                  wiring only: construct modules, call loop()
 src/TagReader.{h,cpp}         RC522 polling, presence debounce, placed/removed callbacks
 src/TagRegistry.{h,cpp}       pure logic: tag map <-> JSON, lookup, add/update/remove
 src/Settings.{h,cpp}          pure logic: settings struct <-> JSON, defaults, validation
-src/HaClient.{h,cpp}          builds webhook payload, POSTs it, one retry, reports result
+src/HaPayload.{h,cpp}         pure logic: builds the webhook JSON payload
+src/HaClient.{h,cpp}          POSTs a payload, one retry, reports result
 src/WebApi.{h,cpp}            HTTP routes; binds registry/settings/reader to the server
 src/WifiSetup.{h,cpp}         STA connect with timeout, else AP + captive portal
 data/index.html               single-file UI (vanilla JS, no build step) on LittleFS
@@ -66,7 +67,7 @@ test/test_haclient/           native unit tests (payload building only)
 README.md                     flashing, first setup, HA setup, curl checklist
 ```
 
-Rule: `TagRegistry`, `Settings` and the payload builder in `HaClient` must not
+Rule: `TagRegistry`, `Settings` and `HaPayload` must not
 include any Arduino or ESP-IDF header. They take and return `std::string` /
 plain structs so they compile and run under PlatformIO's `native` environment.
 ArduinoJson is header-only and works natively, so it is allowed there.
@@ -142,8 +143,8 @@ Data model, stored at `/tags.json`:
 - `content_type` defaults to `music`. Free string so later Spotify values
   (`playlist`, `album`, `track`) need no firmware change.
 - `player` optional; empty means "use `default_player` from settings".
-- `volume` optional, 0.0–1.0; absent means "use `default_volume`"; `-1` in the
-  API means "don't touch volume". Stored as absent when not set.
+- `volume` optional. Absent or `null` means "use `default_volume`". `-1` means
+  "don't touch the speaker's volume" and is stored as `-1`. Otherwise 0.0–1.0.
 - `shuffle` defaults to `false`.
 - API: `load(json) -> bool`, `save() -> json`, `find(uid) -> optional<Tag>`,
   `upsert(uid, Tag)`, `remove(uid) -> bool`, `all() -> vector<pair<uid,Tag>>`.
