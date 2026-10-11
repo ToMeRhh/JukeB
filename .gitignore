@@ -1,0 +1,10 @@
+# PlatformIO
+firmware/.pio/
+firmware/.vscode/
+# superpowers scratch
+.superpowers/
+# OS / editor
+.DS_Store
+*.swp
+# Python
+__pycache__/
