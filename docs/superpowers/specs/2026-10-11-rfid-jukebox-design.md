@@ -239,10 +239,10 @@ All JSON. Static `index.html` served from LittleFS at `/`.
 | GET | `/api/tags` | full registry |
 | PUT | `/api/tags/{uid}` | create or replace one tag (body = tag object) |
 | DELETE | `/api/tags/{uid}` | remove |
-| POST | `/api/tags/{uid}/play` | send `play` for this tag now (test button) |
+| POST | `/api/tags/{uid}/play` | queue `play` for this tag (test button); returns 202 |
 | GET | `/api/settings` | settings with masked WiFi password |
 | PUT | `/api/settings` | replace settings; validates; persists; returns the stored result |
-| POST | `/api/test` | POST a `{"event":"test"}` payload to the webhook; returns HTTP code |
+| POST | `/api/test` | queue a `{"event":"test"}` POST to the webhook (done by `loop()`, since web handlers must not block); returns 202, result shows up in `/api/status`.`lastResult` |
 | POST | `/api/reboot` | reboot |
 
 Errors: 400 with `{"error":"..."}` on validation failures, 404 for unknown UID,
