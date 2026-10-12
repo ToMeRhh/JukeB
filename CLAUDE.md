@@ -4,56 +4,55 @@ Guidance for AI-assisted work in this repository.
 
 ## What this is
 
-An RFID music box: ESP32 + RC522 reader. A scanned tag makes the ESP32 POST a JSON
-payload to a Home Assistant webhook; a Home Assistant automation plays the media on a
-Cast speaker. Configuration lives on the ESP32 and is edited through its web UI.
-
-Design spec: `docs/superpowers/specs/2026-10-11-rfid-jukebox-design.md`.
-Implementation plan: `docs/superpowers/plans/2026-10-11-rfid-jukebox.md`.
+A kids' RFID music box. An ESP32 + RC522 reader POSTs `present` / `absent` /
+`heartbeat` events to a Home Assistant webhook. The `jukebox` custom integration
+owns everything else: tag registry, MP3 library, playback on a `media_player`,
+removal behaviour, and the Jukebox sidebar panel. The firmware has no UI and no
+state.
 
 ## Layout
 
-- `firmware/` PlatformIO project. `src/` firmware, `data/index.html` the web UI
-  (embedded into the firmware image via `board_build.embed_txtfiles`), `test/` native
-  unit tests.
-- `homeassistant/` the webhook automation YAML and its README.
-- `docs/` specs and plans.
+- `integration/custom_components/jukebox/` the integration. `frontend/jukebox-panel.js`
+  is the panel (vanilla JS, no build step). `integration/tests/` pytest suite.
+- `firmware/` PlatformIO project. `src/` firmware, `include/config.example.h` the
+  build-time config template (`include/config.h` is git-ignored), `test/` host tests.
 
 Keep new top-level concerns in their own folder (e.g. `tools/`).
 
 ## Build and test
 
-All commands run from `firmware/`. PlatformIO lives at `~/.platformio/penv/bin/pio`.
+Integration (Python 3.13, run from `integration/`):
+- `uv venv --python 3.13 .venv && uv pip install --python .venv/bin/python -r requirements_test.txt`
+- `.venv/bin/python -m pytest -q` runs the suite against a real in-process HA core.
+- `node --check custom_components/jukebox/frontend/jukebox-panel.js` syntax-checks the panel.
 
-- `pio test -e native` runs the host unit tests (no board needed). Run this after every change to a pure-logic module.
-- `pio run -e esp32dev` compiles the firmware.
-- `pio run -e esp32dev -t upload` flashes firmware including the web UI. Never run
-  `uploadfs`: LittleFS holds only the user's tags and settings and must not be erased.
-- `pio device monitor` serial log at 115200.
+Firmware (run from `firmware/`, PlatformIO at `~/.platformio/penv/bin/pio`):
+- `pio test -e native` host tests for the pure modules.
+- `pio run -e esp32dev` compile; `pio run -e esp32dev -t upload` flash; `pio device monitor`.
 
 ## Conventions
 
-- Pure-logic modules (`TagRegistry`, `Settings`, `HaPayload`, `PresenceTracker`, `RetrySchedule`) must
-  not include Arduino or ESP-IDF headers. They are compiled for the host by the
-  `native` environment (`build_src_filter` in `platformio.ini`) and unit-tested with
-  Unity. Put new logic there first, test it there, then wire it into Arduino code.
-- Arduino modules (`TagReader`, `Storage`, `HaClient`, `WifiSetup`, `WebApi`, `Led`)
-  wrap hardware and network. `main.cpp` only wires modules together.
-- Web handlers run on the async TCP task. They must not block (no HTTP calls, no
-  delays). Mutate `AppState` under `state.mutex`; enqueue network work as a `Command`
-  for `loop()`.
-- JSON everywhere uses ArduinoJson 7 (`JsonDocument`). Keys are snake_case.
-- UID strings are upper-case hex bytes joined with `:`.
-- Tests: TDD. Write the failing Unity test, watch it fail, implement, watch it pass.
+- `tests/conftest.py` imports `custom_components` first on purpose; do not reorder.
+- Integration: all logic that does not touch HA services lives in `store.py`,
+  `media.py`, `controller.py` and is tested directly. `webhook.py`, `websocket.py`,
+  `upload.py`, `panel.py` are thin adapters. Validation errors are `StoreError` /
+  `MediaError` with user-readable messages; websocket handlers map them to
+  `send_error(id, "invalid", message)`.
+- Websocket commands and the upload view are admin only. Global registrations
+  (websocket, view, static path) happen once per HA run behind `DATA_SETUP_DONE`;
+  the webhook and panel are registered per entry and removed on unload.
+- Storage shape is fixed in `store.py` (`version 1`). Adding a media type means a
+  new `media.type` value, never a new top-level key.
+- Firmware: `PresenceDebouncer`, `EventPayload`, `ReplyParser` must not include
+  Arduino headers (they build under `[env:native]`). Arduino modules wrap hardware.
+  `main.cpp` only wires modules and owns the event queue.
+- UIDs are upper-case hex bytes joined with `:` on both sides.
+- Tests first (TDD): write the failing test, watch it fail, implement, watch it pass.
 
-## Hardware pins
+## Protocol
 
-SS=5, SCK=18, MOSI=23, MISO=19 (VSPI defaults), RST=21 (held HIGH, software reset
-only), onboard LED=2.
-
-## Home Assistant contract
-
-POST `<ha_url>/api/webhook/<webhook_id>` with JSON:
-`{"event":"play"|"pause"|"stop"|"test", "uid", "name", "uri", "content_type", "player", "volume"?, "shuffle"}`.
-Changing what Home Assistant does with it (e.g. moving to Music Assistant) is an
-automation change, never a firmware change.
+POST `<ha_url>/api/webhook/<webhook_id>`, JSON with `event`, `box_id`, `version`,
+plus `uid` (present/absent) or `uptime_s` and `rssi` (heartbeat). Replies:
+`{"ok":true,"known":bool}` for present, `{"ok":true}` otherwise, HTTP 400
+`{"ok":false,"error":...}` for bad input. Changing playback behaviour is an
+integration change, never a firmware change.

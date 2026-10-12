@@ -1,11 +1,17 @@
 # PlatformIO
 firmware/.pio/
 firmware/.vscode/
-# superpowers scratch
+firmware/include/config.h
+
+# Python
+integration/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+
+# Agent workspaces (never committed)
 .superpowers/
-# OS / editor
+
 .DS_Store
 *.swp
-# Python
-__pycache__/
-

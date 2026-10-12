@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Jukebox",
+        "description": "The webhook ID must match JUKEBOX_WEBHOOK_ID in the firmware's config.h. The speaker can be changed later in the Jukebox panel.",
+        "data": {
+          "webhook_id": "Webhook ID",
+          "player": "Speaker"
+        }
+      }
+    },
+    "error": {
+      "invalid_webhook_id": "Use only lower-case letters, digits, - and _"
+    },
+    "abort": {
+      "single_instance_allowed": "Only one Jukebox can be configured"
+    }
+  }
+}

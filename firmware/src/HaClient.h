@@ -2,10 +2,15 @@
 
 #include <string>
 
-#include "AppState.h"
-
-// Blocking HTTP POST to the Home Assistant webhook. Call only from loop().
+// Blocking HTTP POST of a JSON body. Call only from loop().
 namespace HaClient {
-// POSTs `payload` as application/json to `url`. 5 s timeout, one retry after 500 ms.
-HaResult send(const std::string& url, const std::string& payload);
-}
+
+struct Response {
+  int httpCode = -1;  // <= 0: transport error
+  std::string body;
+};
+
+// 3 s connect/read timeouts; one retry after 300 ms on a transport error.
+Response post(const std::string& url, const std::string& json);
+
+}  // namespace HaClient
