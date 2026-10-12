@@ -9,6 +9,7 @@ from typing import Any
 
 import voluptuous as vol
 
+from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_call_later
@@ -76,9 +77,10 @@ class JukeboxController:
         self.last_scanned = {"uid": uid, "known": tag is not None, "at": dt_util.utcnow().isoformat()}
         if tag is None:
             return False
-        self._cancel_grace()
-        if self.current_uid == uid:
+        if self.current_uid == uid and self._grace_cancel is not None:
+            self._cancel_grace()
             return True  # back within the grace window: keep playing
+        self._cancel_grace()
         self.current_uid = uid
         self._hass.async_create_task(self._async_play_tag(uid, tag))
         return True
@@ -89,7 +91,7 @@ class JukeboxController:
         self._cancel_grace()
         grace = self._store.settings.remove_grace_s
         if grace <= 0:
-            await self._async_removed()
+            self._hass.async_create_task(self._async_removed())
             return
         self._grace_cancel = async_call_later(self._hass, grace, self._grace_expired)
 
@@ -146,6 +148,12 @@ class JukeboxController:
 
     async def _async_call(self, service: str, data: dict[str, Any]) -> bool:
         player = self._store.settings.player
+        state = self._hass.states.get(player)
+        if state is None or state.state == STATE_UNAVAILABLE:
+            # The entity service helper silently skips missing/unavailable entities.
+            self.last_error = f"{player} is not available"
+            _LOGGER.warning("Jukebox: %s", self.last_error)
+            return False
         try:
             await self._hass.services.async_call(
                 "media_player", service, {"entity_id": player, **data}, blocking=True

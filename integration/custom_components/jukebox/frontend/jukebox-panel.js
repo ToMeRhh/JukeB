@@ -88,6 +88,7 @@ class JukeboxPanel extends HTMLElement {
   async _start() {
     if (!this._rendered) this._renderShell();
     await this._refreshAll();
+    if (!this.isConnected) return; // navigated away during the first load: no timer to leak
     clearInterval(this._timer);
     this._timer = setInterval(() => this._refreshStatus(), POLL_MS);
   }
@@ -109,7 +110,21 @@ class JukeboxPanel extends HTMLElement {
   // ---------- data ----------
 
   async _refreshAll() {
-    await Promise.all([this._refreshStatus(), this._refreshTags(), this._refreshFiles(), this._refreshSettings()]);
+    // Each section reports its own load failure; one failing call must not hide the others.
+    await Promise.all([
+      this._refreshStatus(),
+      this._guard("tagMsg", () => this._refreshTags()),
+      this._guard("fileMsg", () => this._refreshFiles()),
+      this._guard("settingsMsg", () => this._refreshSettings()),
+    ]);
+  }
+
+  async _guard(msgId, fn) {
+    try {
+      await fn();
+    } catch (e) {
+      this._say(msgId, `Failed to load: ${e.message || e}`, false);
+    }
   }
 
   async _refreshStatus() {
@@ -383,7 +398,11 @@ class JukeboxPanel extends HTMLElement {
     await this._refreshFiles();
   }
 
-  _uploadOne(file) {
+  async _uploadOne(file) {
+    // HA access tokens expire after 30 min and are refreshed lazily; XHR bypasses fetchWithAuth.
+    if (this._hass.auth.expired) {
+      try { await this._hass.auth.refreshAccessToken(); } catch (_) { /* the request below will report 401 */ }
+    }
     const box = document.createElement("div");
     box.innerHTML = `<div class="row"><span>${esc(file.name)}</span><span class="muted up-state">0%</span></div><progress max="100" value="0"></progress>`;
     this.$("uploads").appendChild(box);

@@ -16,6 +16,7 @@ def services(hass):
 
 @pytest.fixture
 async def client(hass, setup_jukebox, hass_client_no_auth, services):
+    hass.states.async_set("media_player.kitchen", "idle")
     data = hass.data[DOMAIN]
     await data.media.async_save("dino.mp3", b"x")
     await data.store.async_set_tag("AA:01", "Dino", {"type": "file", "path": "dino.mp3"}, data.media.exists)

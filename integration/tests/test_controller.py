@@ -31,6 +31,7 @@ async def ctl(hass, hass_media_dir):
     await media.async_save("cat.mp3", b"y")
     await store.async_set_tag("AA:01", "Dino", {"type": "file", "path": "dino.mp3"}, media.exists)
     await store.async_set_tag("BB:02", "Cat", {"type": "file", "path": "cat.mp3"}, media.exists)
+    hass.states.async_set(PLAYER, "idle")
     controller = JukeboxController(hass, store, media)
     yield controller
     await controller.async_shutdown()
@@ -181,3 +182,53 @@ def test_box_status_online_offline():
     assert d["box_id"] == "jukebox" and d["last_seen"] == now.isoformat()
     box.touch({"rssi": "weak"}, now)  # bad types are ignored, last_seen still updates
     assert box.as_dict(now)["rssi"] is None
+
+
+async def test_missing_player_records_last_error(hass, ctl, services):
+    # No media_player.kitchen state exists in this test: HA's entity service helper
+    # silently skips missing entities, so the controller must check itself.
+    hass.states.async_remove(PLAYER)
+    assert await ctl.async_present("AA:01") is True
+    await hass.async_block_till_done()
+    assert services["play_media"] == []
+    assert ctl.now_playing is None
+    assert ctl.last_error == f"{PLAYER} is not available"
+
+
+async def test_unavailable_player_records_last_error(hass, ctl, services):
+    hass.states.async_set(PLAYER, "unavailable")
+    await ctl.async_play("AA:01")
+    assert services["play_media"] == []
+    assert ctl.last_error == f"{PLAYER} is not available"
+    hass.states.async_set(PLAYER, "idle")
+    await ctl.async_play("AA:01")
+    assert len(services["play_media"]) == 1
+    assert ctl.last_error is None
+
+
+async def test_duplicate_present_without_grace_replays(hass, ctl, services):
+    # A lost `absent` (box could not deliver it) must not make the object dead:
+    # a second `present` with no grace timer running plays again.
+    await ctl.async_present("AA:01")
+    await hass.async_block_till_done()
+    await ctl.async_present("AA:01")
+    await hass.async_block_till_done()
+    assert len(services["play_media"]) == 2
+
+
+async def test_grace_zero_does_not_block_on_the_service(hass, ctl, services):
+    import asyncio
+
+    release = asyncio.Event()
+
+    async def slow_pause(call):
+        await release.wait()
+
+    hass.services.async_register("media_player", "media_pause", slow_pause)
+    await ctl._store.async_set_settings({"remove_grace_s": 0})
+    await ctl.async_present("AA:01")
+    await hass.async_block_till_done()
+    await asyncio.wait_for(ctl.async_absent("AA:01"), timeout=1)  # must return before the pause completes
+    assert ctl.current_uid is None
+    release.set()
+    await hass.async_block_till_done()

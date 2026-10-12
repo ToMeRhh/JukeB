@@ -6,6 +6,7 @@ from custom_components.jukebox.const import DOMAIN
 
 @pytest.fixture
 async def ws(hass, setup_jukebox, hass_ws_client):
+    hass.states.async_set("media_player.kitchen", "idle")
     data = hass.data[DOMAIN]
     await data.media.async_save("dino.mp3", b"abc")
     await data.media.async_save("cat.mp3", b"de")
