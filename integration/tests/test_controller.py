@@ -1,0 +1,183 @@
+from datetime import timedelta
+
+import pytest
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed, async_mock_service
+
+from custom_components.jukebox.controller import BoxStatus, JukeboxController
+from custom_components.jukebox.media import MediaLibrary
+from custom_components.jukebox.store import JukeboxStore, StoreError
+
+PLAYER = "media_player.kitchen"
+URI = "media-source://media_source/media/jukebox/dino.mp3"
+
+
+@pytest.fixture
+def services(hass):
+    return {
+        name: async_mock_service(hass, "media_player", name)
+        for name in ("volume_set", "play_media", "media_pause", "media_stop")
+    }
+
+
+@pytest.fixture
+async def ctl(hass, hass_media_dir):
+    store = JukeboxStore(hass, PLAYER)
+    await store.async_load()
+    media = MediaLibrary(hass)
+    await media.async_setup()
+    await media.async_save("dino.mp3", b"x")
+    await media.async_save("cat.mp3", b"y")
+    await store.async_set_tag("AA:01", "Dino", {"type": "file", "path": "dino.mp3"}, media.exists)
+    await store.async_set_tag("BB:02", "Cat", {"type": "file", "path": "cat.mp3"}, media.exists)
+    controller = JukeboxController(hass, store, media)
+    yield controller
+    await controller.async_shutdown()
+
+
+async def advance(hass, seconds):
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=seconds))
+    await hass.async_block_till_done()
+
+
+async def test_known_tag_plays_with_volume(hass, ctl, services):
+    assert await ctl.async_present("AA:01") is True
+    await hass.async_block_till_done()
+    assert services["volume_set"][0].data == {"entity_id": PLAYER, "volume_level": 0.3}
+    assert services["play_media"][0].data == {
+        "entity_id": PLAYER,
+        "media_content_id": URI,
+        "media_content_type": "music",
+    }
+    assert ctl.current_uid == "AA:01"
+    assert ctl.now_playing["uid"] == "AA:01" and ctl.now_playing["name"] == "Dino"
+    assert ctl.last_scanned["uid"] == "AA:01" and ctl.last_scanned["known"] is True
+    assert ctl.last_error is None
+
+
+async def test_unknown_tag_only_records_last_scanned(hass, ctl, services):
+    assert await ctl.async_present("ZZ:99") is False
+    await hass.async_block_till_done()
+    assert services["play_media"] == []
+    assert ctl.current_uid is None
+    assert ctl.last_scanned == {"uid": "ZZ:99", "known": False, "at": ctl.last_scanned["at"]}
+
+
+async def test_absent_after_grace_pauses(hass, ctl, services):
+    await ctl.async_present("AA:01")
+    await ctl.async_absent("AA:01")
+    await hass.async_block_till_done()
+    assert services["media_pause"] == []
+    assert ctl.current_uid == "AA:01"  # still counted as present during grace
+    await advance(hass, 3)
+    assert len(services["media_pause"]) == 1
+    assert ctl.current_uid is None and ctl.now_playing is None
+
+
+async def test_same_tag_back_within_grace_keeps_playing(hass, ctl, services):
+    await ctl.async_present("AA:01")
+    await ctl.async_absent("AA:01")
+    await advance(hass, 1)
+    assert await ctl.async_present("AA:01") is True
+    await advance(hass, 5)
+    assert services["media_pause"] == []
+    assert len(services["play_media"]) == 1
+    assert ctl.current_uid == "AA:01"
+
+
+async def test_other_tag_during_grace_plays_new_and_cancels_pause(hass, ctl, services):
+    await ctl.async_present("AA:01")
+    await ctl.async_absent("AA:01")
+    await ctl.async_present("BB:02")
+    await advance(hass, 5)
+    assert services["media_pause"] == []
+    assert [c.data["media_content_id"] for c in services["play_media"]] == [
+        URI,
+        "media-source://media_source/media/jukebox/cat.mp3",
+    ]
+    assert ctl.current_uid == "BB:02"
+
+
+async def test_unknown_tag_during_grace_does_not_cancel(hass, ctl, services):
+    await ctl.async_present("AA:01")
+    await ctl.async_absent("AA:01")
+    assert await ctl.async_present("ZZ:99") is False
+    await ctl.async_absent("ZZ:99")
+    await advance(hass, 5)
+    assert len(services["media_pause"]) == 1
+    assert ctl.current_uid is None
+
+
+async def test_absent_for_other_uid_ignored(hass, ctl, services):
+    await ctl.async_present("AA:01")
+    await ctl.async_absent("BB:02")
+    await advance(hass, 5)
+    assert services["media_pause"] == []
+    assert ctl.current_uid == "AA:01"
+
+
+async def test_grace_zero_applies_immediately(hass, ctl, services):
+    await ctl._store.async_set_settings({"remove_grace_s": 0, "on_remove": "stop"})
+    await ctl.async_present("AA:01")
+    await ctl.async_absent("AA:01")
+    await hass.async_block_till_done()
+    assert len(services["media_stop"]) == 1
+    assert ctl.current_uid is None
+
+
+async def test_on_remove_none_does_nothing(hass, ctl, services):
+    await ctl._store.async_set_settings({"on_remove": "none"})
+    await ctl.async_present("AA:01")
+    await ctl.async_absent("AA:01")
+    await advance(hass, 5)
+    assert services["media_pause"] == [] and services["media_stop"] == []
+    assert ctl.current_uid is None and ctl.now_playing is None
+
+
+async def test_service_failure_records_last_error(hass, ctl, services):
+    async def boom(call):
+        raise HomeAssistantError("cast is asleep")
+
+    hass.services.async_register("media_player", "play_media", boom)
+    assert await ctl.async_present("AA:01") is True
+    await hass.async_block_till_done()
+    assert "cast is asleep" in ctl.last_error
+    assert ctl.now_playing is None
+    # a later success clears the error
+    async_mock_service(hass, "media_player", "play_media")
+    await ctl.async_play("BB:02")
+    assert ctl.last_error is None
+
+
+async def test_play_from_panel_does_not_change_current(hass, ctl, services):
+    await ctl.async_play("BB:02")
+    assert len(services["play_media"]) == 1
+    assert ctl.current_uid is None
+    assert ctl.now_playing["uid"] == "BB:02"
+    with pytest.raises(StoreError, match="unknown tag"):
+        await ctl.async_play("ZZ:99")
+
+
+async def test_snapshot(hass, ctl, services):
+    assert ctl.snapshot() == {
+        "current_uid": None,
+        "last_scanned": None,
+        "now_playing": None,
+        "last_error": None,
+    }
+
+
+def test_box_status_online_offline():
+    box = BoxStatus()
+    now = dt_util.utcnow()
+    assert box.online(now) is False
+    assert box.as_dict(now)["online"] is False and box.as_dict(now)["last_seen"] is None
+    box.touch({"box_id": "jukebox", "version": "2.0.0", "rssi": -61, "uptime_s": 12}, now)
+    assert box.online(now + timedelta(seconds=89)) is True
+    assert box.online(now + timedelta(seconds=90)) is False
+    d = box.as_dict(now)
+    assert d["rssi"] == -61 and d["uptime_s"] == 12 and d["version"] == "2.0.0"
+    assert d["box_id"] == "jukebox" and d["last_seen"] == now.isoformat()
+    box.touch({"rssi": "weak"}, now)  # bad types are ignored, last_seen still updates
+    assert box.as_dict(now)["rssi"] is None
