@@ -12,6 +12,7 @@ from .data import JukeboxData
 from .media import MediaLibrary
 from .store import JukeboxStore
 from .webhook import handle_webhook
+from .websocket import async_register_websocket
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -35,7 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     if not hass.data.get(DATA_SETUP_DONE):
         # Global registrations survive entry reloads; do them once per HA run.
-        # [ws]
+        async_register_websocket(hass)
         # [upload]
         # [static]
         hass.data[DATA_SETUP_DONE] = True
