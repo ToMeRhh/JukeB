@@ -8,3 +8,4 @@ firmware/.vscode/
 *.swp
 # Python
 __pycache__/
+
