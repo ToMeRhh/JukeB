@@ -10,6 +10,7 @@ from .const import CONF_PLAYER, CONF_WEBHOOK_ID, DATA_SETUP_DONE, DOMAIN
 from .controller import BoxStatus, JukeboxController
 from .data import JukeboxData
 from .media import MediaLibrary
+from .panel import async_register_panel, async_register_static, async_remove_panel
 from .store import JukeboxStore
 from .upload import JukeboxUploadView
 from .webhook import handle_webhook
@@ -39,16 +40,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Global registrations survive entry reloads; do them once per HA run.
         async_register_websocket(hass)
         hass.http.register_view(JukeboxUploadView())
-        # [static]
+        await async_register_static(hass)
         hass.data[DATA_SETUP_DONE] = True
-    # [panel]
+    await async_register_panel(hass)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Jukebox."""
     ha_webhook.async_unregister(hass, entry.data[CONF_WEBHOOK_ID])
-    # [panel-remove]
+    async_remove_panel(hass)
     data: JukeboxData | None = hass.data.pop(DOMAIN, None)
     if data is not None:
         await data.controller.async_shutdown()
