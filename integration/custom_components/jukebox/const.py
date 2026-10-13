@@ -1,7 +1,7 @@
 """Constants for the Jukebox integration."""
 
 DOMAIN = "jukebox"
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 CONF_WEBHOOK_ID = "webhook_id"
 CONF_PLAYER = "player"

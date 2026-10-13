@@ -1,4 +1,7 @@
-from custom_components.jukebox.const import DOMAIN
+import json
+from pathlib import Path
+
+from custom_components.jukebox.const import DOMAIN, VERSION
 
 
 async def test_panel_registered_and_static_served(hass, setup_jukebox, hass_client):
@@ -9,7 +12,10 @@ async def test_panel_registered_and_static_served(hass, setup_jukebox, hass_clie
     assert panel.sidebar_icon == "mdi:music-box-multiple"
     assert panel.require_admin is True
     assert panel.config["_panel_custom"]["name"] == "jukebox-panel"
-    assert panel.config["_panel_custom"]["module_url"] == "/api/jukebox/static/jukebox-panel.js?v=2.0.0"
+    # The ?v= query is the only cache-buster browsers see: it must follow VERSION, and VERSION
+    # must be bumped with every panel change.
+    assert panel.config["_panel_custom"]["module_url"] == f"/api/jukebox/static/jukebox-panel.js?v={VERSION}"
+    assert VERSION == "2.1.0"
 
     client = await hass_client()
     resp = await client.get("/api/jukebox/static/jukebox-panel.js")
@@ -32,3 +38,8 @@ async def test_reload_keeps_working(hass, setup_jukebox):
     await hass.async_block_till_done()
     assert "jukebox" in hass.data["frontend_panels"]
     assert DOMAIN in hass.data
+
+
+def test_manifest_version_matches_const():
+    manifest = json.loads((Path(__file__).parent.parent / "custom_components/jukebox/manifest.json").read_text())
+    assert manifest["version"] == VERSION

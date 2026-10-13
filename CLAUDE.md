@@ -41,6 +41,9 @@ Firmware (run from `firmware/`, PlatformIO at `~/.platformio/penv/bin/pio`):
 - Websocket commands and the upload view are admin only. Global registrations
   (websocket, view, static path) happen once per HA run behind `DATA_SETUP_DONE`;
   the webhook and panel are registered per entry and removed on unload.
+- Any change to `frontend/jukebox-panel.js` bumps `VERSION` in `const.py` and
+  `manifest.json` together: the `?v=` query on the module URL is the only thing that
+  makes browsers refetch the panel. `test_panel.py` pins both.
 - Storage shape is fixed in `store.py` (`version 1`). Adding a media type means a
   new `media.type` value, never a new top-level key.
 - Firmware: `PresenceDebouncer`, `EventPayload`, `ReplyParser` must not include
