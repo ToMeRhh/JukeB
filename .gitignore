@@ -12,6 +12,7 @@ __pycache__/
 
 # Agent workspaces (never committed)
 .superpowers/
+.claude/worktrees/
 
 .DS_Store
 *.swp

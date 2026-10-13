@@ -7,8 +7,7 @@ RFID tag. When a tag lands on the box, Home Assistant looks up which song belong
 on any speaker it controls (a Google Nest Mini, a Cast speaker, Sonos, ...). Everything is set up from
 a **Jukebox** page in the Home Assistant sidebar: no app, no account, no cloud.
 
-> 📷 **Photo placeholder:** the finished box on a shelf with a few tagged toys next to it.
-> Save as `docs/images/hero.jpg` and replace this note with `![JukeB](docs/images/hero.jpg)`.
+<!-- 📷 the finished box on a shelf with a few tagged toys next to it. Save as `docs/images/hero.jpg` and replace this note with `![JukeB](docs/images/hero.jpg)`. -->
 
 ## How it works
 
@@ -32,8 +31,7 @@ a **Jukebox** page in the Home Assistant sidebar: no app, no account, no cloud.
 Because all the logic lives in Home Assistant, you never need to re-flash the box to add a song or
 change how it behaves.
 
-> 📷 **Screenshot placeholder:** the Jukebox panel in Home Assistant (Tags tab, a few tags listed).
-> Save as `docs/images/panel.png`.
+<!-- 📷 the Jukebox panel in Home Assistant (Tags tab, a few tags listed). Save as `docs/images/panel.png`. -->
 
 ## What you need
 
@@ -68,8 +66,7 @@ RST swap places at the end.
 
 Power the RC522 from **3.3 V**, never 5 V. Pin labels differ between boards, so go by the GPIO number.
 
-> 📷 **Photo placeholder:** the ESP32 and RC522 wired together on the desk before going into the case.
-> Save as `docs/images/wired.jpg`.
+<!-- 📷 the ESP32 and RC522 wired together on the desk before going into the case. Save as `docs/images/wired.jpg`. -->
 
 ## Build it, step by step
 
@@ -123,8 +120,7 @@ bedtime). The **Enabled** toggle at the top of the panel switches the box off fo
 Home Assistant also gets a **Jukebox** device with a `binary_sensor.jukebox_online` and a
 `switch.jukebox_enabled`, so you can use them in automations and dashboards.
 
-> 📷 **Photo placeholder:** a child placing a toy on the box.
-> Save as `docs/images/in-use.jpg`.
+<!-- 📷 a child placing a toy on the box. Save as `docs/images/in-use.jpg`. -->
 
 ## Repository layout
 
