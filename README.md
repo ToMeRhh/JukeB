@@ -39,7 +39,7 @@ change how it behaves.
 
 | Part | Notes |
 |---|---|
-| ESP32 DevKit V1 (30-pin, ESP32-WROOM-32) | Any ESP32 dev board works |
+| ESP32 DevKit V1 (30-pin, ESP32-WROOM-32) | Other ESP32-WROOM boards work too (not WROVER: it uses GPIO16/17) |
 | RC522 RFID reader module (13.56 MHz) | The common blue board, ideally with a right-angle header |
 | RFID tags, 13.56 MHz (MIFARE Classic / NTAG) | Coin tags, stickers or cards |
 | 7 female-to-female jumper wires | |
@@ -49,19 +49,21 @@ change how it behaves.
 
 ## Wiring
 
-Seven wires connect the reader to the ESP32. All of them are on the same header row of the board.
+Seven wires connect the reader to the ESP32. The reader's eight header pins line up with the bottom
+eight pins of one row on the ESP32, in the same order, so the wires run straight across. Only GND and
+RST swap places at the end.
 
 ![Wiring diagram](docs/images/wiring.svg)
 
 | RC522 pin | ESP32 pin |
 |---|---|
-| SDA (SS) | GPIO 5 (D5) |
-| SCK | GPIO 18 (D18) |
-| MOSI | GPIO 23 (D23) |
-| MISO | GPIO 19 (D19) |
+| SDA (SS) | D5 (GPIO 5) |
+| SCK | TX2 (GPIO 17) |
+| MOSI | RX2 (GPIO 16) |
+| MISO | D4 (GPIO 4) |
 | IRQ | not connected |
 | GND | GND |
-| RST | GPIO 21 (D21) |
+| RST | D15 (GPIO 15) |
 | 3.3V | 3V3 |
 
 Power the RC522 from **3.3 V**, never 5 V. Pin labels differ between boards, so go by the GPIO number.

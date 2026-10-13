@@ -14,7 +14,7 @@ class TagReader {
  public:
   static constexpr uint32_t kPollMs = 100;
 
-  explicit TagReader(uint8_t ssPin);
+  TagReader(uint8_t ssPin, uint8_t sckPin, uint8_t misoPin, uint8_t mosiPin);
 
   // SPI + chip init. False when the version register reads 0x00/0xFF.
   bool begin();
@@ -30,6 +30,7 @@ class TagReader {
  private:
   bool readUid(std::string& out);
 
+  uint8_t ssPinNum_, sckPin_, misoPin_, mosiPin_;
   MFRC522DriverPinSimple ssPin_;
   MFRC522DriverSPI driver_;
   MFRC522 mfrc_;

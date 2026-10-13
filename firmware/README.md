@@ -21,17 +21,25 @@ first: you need its webhook ID here.
 
 ![Wiring diagram](../docs/images/wiring.svg)
 
+The reader's eight header pins line up with the bottom eight pins of the ESP32
+DevKit's right-hand row, in order. Only GND and RST swap places at the end.
+
 | RC522 | ESP32 |
 |---|---|
-| SDA/SS | GPIO5 |
-| SCK | GPIO18 |
-| MOSI | GPIO23 |
-| MISO | GPIO19 |
-| RST | GPIO21 |
-| 3.3V | 3.3V |
+| SDA/SS | D5 (GPIO5) |
+| SCK | TX2 (GPIO17) |
+| MOSI | RX2 (GPIO16) |
+| MISO | D4 (GPIO4) |
+| IRQ | not connected (D2 sits opposite) |
 | GND | GND |
+| RST | D15 (GPIO15) |
+| 3.3V | 3V3 |
 
-Onboard LED on GPIO2. Power the RC522 from 3.3 V, never 5 V. IRQ is not connected.
+Onboard LED on GPIO2. Power the RC522 from 3.3 V, never 5 V.
+
+Use a board with an ESP32-WROOM module: on WROVER modules GPIO16/17 are
+taken by PSRAM. Firmware before 2.1.0 used GPIO 18/19/21/23; rewire if
+you update an older box.
 
 ## Configure
 
@@ -90,7 +98,7 @@ pio test -e native
 
 At 115200 baud you should see, in order:
 
-1. `[boot] Jukebox firmware 2.0.0, box id ...` and the webhook URL.
+1. `[boot] Jukebox firmware 2.1.0, box id ...` and the webhook URL.
 2. `[reader] RC522 version 0x92 ok` (0x91/0x92/0xB2 are normal; `NOT FOUND` means wiring).
 3. `[wifi] connected, ip ...`.
 4. `[ha] heartbeat -> ok`. The Jukebox panel now shows **Online**.
