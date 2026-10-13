@@ -4,7 +4,7 @@ firmware/.vscode/
 firmware/include/config.h
 
 # Python
-integration/.venv/
+home-assistant/.venv/
 __pycache__/
 *.pyc
 .pytest_cache/

@@ -13,16 +13,18 @@ has no UI and no state.
 
 ## Layout
 
-- `integration/custom_components/jukebox/` the integration. `frontend/jukebox-panel.js`
-  is the panel (vanilla JS, no build step). `integration/tests/` pytest suite.
+- `home-assistant/custom_components/jukebox/` the integration. `frontend/jukebox-panel.js`
+  is the panel (vanilla JS, no build step). `home-assistant/tests/` pytest suite.
 - `firmware/` PlatformIO project. `src/` firmware, `include/config.example.h` the
   build-time config template (`include/config.h` is git-ignored), `test/` host tests.
+- `docs/images/` pictures for the top-level README (`wiring.svg`; photo placeholders listed in its README).
 
-Keep new top-level concerns in their own folder (e.g. `tools/`).
+Every top-level folder has a README written for someone building the box; keep
+them in sync with the code. Keep new top-level concerns in their own folder (e.g. `tools/`).
 
 ## Build and test
 
-Integration (Python 3.13, run from `integration/`):
+Integration (Python 3.13, run from `home-assistant/`):
 - `uv venv --python 3.13 .venv && uv pip install --python .venv/bin/python -r requirements_test.txt`
 - `.venv/bin/python -m pytest -q` runs the suite against a real in-process HA core.
 - `node --check custom_components/jukebox/frontend/jukebox-panel.js` syntax-checks the panel.
