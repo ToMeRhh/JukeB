@@ -26,7 +26,7 @@ async def test_status_initial(hass, ws):
     assert r["online"] is False and r["last_seen"] is None
     assert r["current_uid"] is None and r["now_playing"] is None and r["last_error"] is None
     assert r["webhook_id"] == "jukebox"
-    assert r["integration_version"] == "2.1.0"
+    assert r["integration_version"] == "2.2.0"
 
 
 async def test_status_after_events(hass, ws, hass_client_no_auth):
