@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +12,10 @@ from homeassistant.core import HomeAssistant
 
 from .const import MAX_UPLOAD_BYTES, MEDIA_SUBDIR
 
-_ALLOWED = re.compile(r"[^A-Za-z0-9._ -]")
+# Path separators, drive/stream separators and control characters are dropped; every
+# other character (Hebrew, accents, punctuation) is kept so the name the user sees is
+# the name on disk.
+_FORBIDDEN = re.compile(r"[/\\:\x00-\x1f\x7f]")
 
 
 class MediaError(ValueError):
@@ -19,7 +23,8 @@ class MediaError(ValueError):
 
 
 def sanitize_filename(name: Any) -> str:
-    text = _ALLOWED.sub("", str(name or "")).strip()
+    text = unicodedata.normalize("NFC", str(name or ""))
+    text = _FORBIDDEN.sub("", text).strip()
     if not text.lower().endswith(".mp3"):
         raise MediaError("only .mp3 files are supported")
     stem = text[:-4].strip(". ")

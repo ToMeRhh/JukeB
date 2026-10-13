@@ -5,11 +5,31 @@ from custom_components.jukebox.media import MediaError, MediaLibrary, sanitize_f
 
 def test_sanitize_filename():
     assert sanitize_filename("My Song.mp3") == "My Song.mp3"
-    assert sanitize_filename("  weird/..\\name!.mp3 ") == "weird..name.mp3"
+    assert sanitize_filename("  weird/..\\name!.mp3 ") == "weird..name!.mp3"
+    assert sanitize_filename("a:b\x00c.mp3") == "abc.mp3"
     assert sanitize_filename("../../x.mp3") == "x.mp3"  # separators are stripped, never honoured
     for bad in ("", "song.wav", "..mp3", ".mp3"):
         with pytest.raises(MediaError):
             sanitize_filename(bad)
+
+
+def test_sanitize_keeps_unicode_and_normalizes():
+    assert sanitize_filename("שיר - ילדים.mp3") == "שיר - ילדים.mp3"
+    assert sanitize_filename("Café.mp3") == "Café.mp3"
+    # macOS sends decomposed (NFD) names; stored names are NFC so lookups match.
+    assert sanitize_filename("Cafe\u0301.mp3") == "Café.mp3"
+
+
+async def test_save_list_delete_unicode(hass, hass_media_dir):
+    lib = MediaLibrary(hass)
+    await lib.async_setup()
+    assert await lib.async_save("שיר.mp3", b"ID3") == {"path": "שיר.mp3", "size": 3}
+    assert (hass_media_dir / "jukebox" / "שיר.mp3").exists()
+    assert lib.exists("שיר.mp3")
+    assert await lib.async_list() == [{"path": "שיר.mp3", "size": 3}]
+    assert lib.uri("שיר.mp3") == "media-source://media_source/media/jukebox/שיר.mp3"
+    await lib.async_delete("שיר.mp3")
+    assert await lib.async_list() == []
 
 
 async def test_setup_creates_folder_and_uri(hass, hass_media_dir):

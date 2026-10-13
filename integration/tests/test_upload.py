@@ -20,6 +20,28 @@ async def test_upload_ok(hass, setup_jukebox, hass_client):
     assert hass.data[DOMAIN].media.exists("My Song.mp3")
 
 
+async def test_upload_unicode_name_is_kept(hass, setup_jukebox, hass_client, hass_media_dir):
+    client = await hass_client()
+    resp = await client.post(URL, data=form("שיר - ילדים.mp3"))
+    assert resp.status == 200
+    assert await resp.json() == {"path": "שיר - ילדים.mp3", "size": 6}
+    assert (hass_media_dir / "jukebox" / "שיר - ילדים.mp3").read_bytes() == b"ID3abc"
+
+
+async def test_unicode_file_is_served_by_media_source(hass, setup_jukebox, hass_client, hass_media_dir):
+    """The URI handed to play_media must resolve to a URL HA actually serves (what Cast fetches)."""
+    from homeassistant.components import media_source
+
+    client = await hass_client()
+    await client.post(URL, data=form("שיר.mp3", b"ID3hebrew"))
+    uri = hass.data[DOMAIN].media.uri("שיר.mp3")
+    play = await media_source.async_resolve_media(hass, uri, None)
+    assert play.mime_type == "audio/mpeg"
+    resp = await client.get(play.url)
+    assert resp.status == 200
+    assert await resp.read() == b"ID3hebrew"
+
+
 async def test_upload_rejects_non_mp3(hass, setup_jukebox, hass_client):
     client = await hass_client()
     resp = await client.post(URL, data=form("song.wav"))
