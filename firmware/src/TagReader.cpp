@@ -5,10 +5,12 @@
 
 #include <cstdio>
 
-TagReader::TagReader(uint8_t ssPin) : ssPin_(ssPin), driver_(ssPin_), mfrc_(driver_) {}
+TagReader::TagReader(uint8_t ssPin, uint8_t sckPin, uint8_t misoPin, uint8_t mosiPin)
+    : ssPinNum_(ssPin), sckPin_(sckPin), misoPin_(misoPin), mosiPin_(mosiPin),
+      ssPin_(ssPin), driver_(ssPin_), mfrc_(driver_) {}
 
 bool TagReader::begin() {
-  SPI.begin();  // VSPI defaults: SCK 18, MISO 19, MOSI 23
+  SPI.begin(sckPin_, misoPin_, mosiPin_, ssPinNum_);  // any pins work via the GPIO matrix at RC522 speeds
   mfrc_.PCD_Init();
   delay(4);
   version_ = static_cast<uint8_t>(mfrc_.PCD_GetVersion());
