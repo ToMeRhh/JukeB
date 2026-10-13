@@ -88,6 +88,27 @@ async def ws_play(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
 
 
 @websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "jukebox/media/play", vol.Required("path"): str})
+@websocket_api.async_response
+async def ws_media_play(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    data = get_data(hass)
+    try:
+        await data.controller.async_play_file(msg["path"])
+    except MediaError as err:
+        _send_invalid(connection, msg["id"], err)
+        return
+    connection.send_result(msg["id"], {})
+
+
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): "jukebox/pause"})
+@websocket_api.async_response
+async def ws_pause(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    await get_data(hass).controller.async_pause()
+    connection.send_result(msg["id"], {})
+
+
+@websocket_api.require_admin
 @websocket_api.websocket_command({vol.Required("type"): "jukebox/settings/get"})
 @callback
 def ws_settings_get(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
@@ -140,6 +161,8 @@ COMMANDS = (
     ws_settings_set,
     ws_media_list,
     ws_media_delete,
+    ws_media_play,
+    ws_pause,
 )
 
 

@@ -175,7 +175,46 @@ async def test_snapshot(hass, ctl, services):
         "last_scanned": None,
         "now_playing": None,
         "last_error": None,
+        "player_state": "idle",
     }
+    hass.states.async_set(PLAYER, "playing")
+    assert ctl.snapshot()["player_state"] == "playing"
+    hass.states.async_remove(PLAYER)
+    assert ctl.snapshot()["player_state"] is None
+
+
+async def test_play_file_from_library(hass, ctl, services):
+    await ctl.async_play_file("cat.mp3")
+    assert services["volume_set"][0].data["volume_level"] == 0.3
+    assert services["play_media"][0].data["media_content_id"] == "media-source://media_source/media/jukebox/cat.mp3"
+    assert ctl.now_playing == {"uid": None, "name": "cat.mp3", "at": ctl.now_playing["at"]}
+    assert ctl.current_uid is None  # library playback is not an object on the box
+
+
+async def test_play_file_keeps_current_tag(hass, ctl, services):
+    assert await ctl.async_present("AA:01") is True
+    await hass.async_block_till_done()
+    await ctl.async_play_file("cat.mp3")
+    assert ctl.current_uid == "AA:01"
+    await ctl.async_absent("AA:01")
+    await advance(hass, 2)
+    assert ctl.current_uid is None and ctl.now_playing is None
+
+
+async def test_play_file_unknown_or_traversal(hass, ctl, services):
+    from custom_components.jukebox.media import MediaError
+
+    with pytest.raises(MediaError, match="file not found"):
+        await ctl.async_play_file("nope.mp3")
+    with pytest.raises(MediaError):
+        await ctl.async_play_file("../secret.mp3")
+    assert services["play_media"] == []
+
+
+async def test_pause(hass, ctl, services):
+    await ctl.async_pause()
+    assert services["media_pause"][0].data == {"entity_id": PLAYER}
+    assert ctl.last_error is None
 
 
 def test_box_status_online_offline():

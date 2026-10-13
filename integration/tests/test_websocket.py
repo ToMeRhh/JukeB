@@ -76,6 +76,20 @@ async def test_play(hass, ws):
     assert reply["error"]["message"] == "unknown tag"
 
 
+async def test_media_play_and_pause(hass, ws):
+    play = async_mock_service(hass, "media_player", "play_media")
+    pause = async_mock_service(hass, "media_player", "media_pause")
+    async_mock_service(hass, "media_player", "volume_set")
+    reply = await call(ws, "jukebox/media/play", path="dino.mp3")
+    assert reply["success"] and reply["result"] == {}
+    assert play[0].data["media_content_id"].endswith("/jukebox/dino.mp3")
+    assert (await call(ws, "jukebox/status"))["result"]["now_playing"]["name"] == "dino.mp3"
+    reply = await call(ws, "jukebox/media/play", path="missing.mp3")
+    assert reply["error"]["message"] == "file not found"
+    reply = await call(ws, "jukebox/pause")
+    assert reply["success"] and len(pause) == 1
+
+
 async def test_settings(hass, ws):
     reply = await call(ws, "jukebox/settings/get")
     assert reply["result"]["settings"] == {

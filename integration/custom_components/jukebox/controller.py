@@ -16,7 +16,7 @@ from homeassistant.helpers.event import async_call_later
 from homeassistant.util import dt as dt_util
 
 from .const import MEDIA_CONTENT_TYPE, OFFLINE_AFTER_S, ON_REMOVE_NONE, ON_REMOVE_PAUSE
-from .media import MediaLibrary
+from .media import MediaError, MediaLibrary
 from .store import JukeboxStore, StoreError, Tag
 
 _LOGGER = logging.getLogger(__name__)
@@ -122,12 +122,23 @@ class JukeboxController:
             raise StoreError("unknown tag")
         await self._async_play_tag(uid, tag)
 
+    async def async_play_file(self, path: str) -> None:
+        """Play a library file on the speaker without touching the object state."""
+        if not self._media.exists(path):
+            raise MediaError("file not found")
+        await self._async_play_path(path, name=path, uid=None)
+
+    async def async_pause(self) -> None:
+        await self._async_call("media_pause", {})
+
     def snapshot(self) -> dict[str, Any]:
+        state = self._hass.states.get(self._store.settings.player)
         return {
             "current_uid": self.current_uid,
             "last_scanned": self.last_scanned,
             "now_playing": self.now_playing,
             "last_error": self.last_error,
+            "player_state": state.state if state is not None else None,
         }
 
     async def async_shutdown(self) -> None:
@@ -136,6 +147,9 @@ class JukeboxController:
     # ----- playback -----
 
     async def _async_play_tag(self, uid: str, tag: Tag) -> None:
+        await self._async_play_path(tag.media_path, name=tag.name, uid=uid)
+
+    async def _async_play_path(self, path: str, *, name: str, uid: str | None) -> None:
         settings = self._store.settings
         ok = True
         if settings.volume is not None:
@@ -143,10 +157,10 @@ class JukeboxController:
         if ok:
             ok = await self._async_call(
                 "play_media",
-                {"media_content_id": self._media.uri(tag.media_path), "media_content_type": MEDIA_CONTENT_TYPE},
+                {"media_content_id": self._media.uri(path), "media_content_type": MEDIA_CONTENT_TYPE},
             )
         if ok:
-            self.now_playing = {"uid": uid, "name": tag.name, "at": dt_util.utcnow().isoformat()}
+            self.now_playing = {"uid": uid, "name": name, "at": dt_util.utcnow().isoformat()}
 
     async def _async_call(self, service: str, data: dict[str, Any]) -> bool:
         player = self._store.settings.player
