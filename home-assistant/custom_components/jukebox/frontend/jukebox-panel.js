@@ -55,6 +55,24 @@ const STYLE = `
   section[hidden] { display: none; }
   .check { display: inline-flex; align-items: center; gap: 6px; color: var(--primary-text-color); font-size: 14px; margin: 10px 0 4px; }
   .check input { width: auto; }
+  .status { display: grid; grid-template-columns: auto repeat(5, minmax(0, 1fr)); gap: 8px 16px; align-items: center; }
+  .status .cell { min-width: 0; }
+  .status .k { display: block; font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; }
+  .status .v { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status .sub { display: block; font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 14px; }
+  .status .err { grid-column: 1 / -1; font-size: 13px; min-height: 18px; }
+  .status .foot { grid-column: 1 / -1; font-size: 12px; color: var(--secondary-text-color); }
+  .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+  .toggle input { opacity: 0; width: 0; height: 0; margin: 0; }
+  .toggle .knob { position: absolute; inset: 0; border-radius: 12px; background: var(--disabled-color, #bdbdbd); transition: .15s; cursor: pointer; }
+  .toggle .knob::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .15s; }
+  .toggle input:checked + .knob { background: var(--primary-color); }
+  .toggle input:checked + .knob::before { transform: translateX(20px); }
+  .toggle input:disabled + .knob { opacity: .5; cursor: default; }
+  @media (max-width: 700px) { .status { grid-template-columns: auto 1fr 1fr; } }
+  audio { width: 100%; margin: 4px 0 12px; }
+  .hours { display: flex; gap: 8px; align-items: center; }
+  .hours input { width: auto; }
 `;
 
 class JukeboxPanel extends HTMLElement {
@@ -71,7 +89,8 @@ class JukeboxPanel extends HTMLElement {
     this._lastScanUid = null;
     this._lastScanAt = null;
     this._playerCount = -1;
-    this._renderedPlaying = null;
+    this._previewPath = null;
+    this._previewPlaying = false;
     this._rendered = false;
   }
 
@@ -143,7 +162,7 @@ class JukeboxPanel extends HTMLElement {
       this._renderStatus();
       this._renderScan();
     } catch (e) {
-      this.$("status").innerHTML = `<span class="bad">Cannot reach the Jukebox integration: ${esc(e.message || e)}</span>`;
+      this.$("stError").textContent = `Cannot reach the Jukebox integration: ${e.message || e}`;
     }
   }
 
@@ -170,7 +189,19 @@ class JukeboxPanel extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>${STYLE}</style>
       <h1>Jukebox</h1>
-      <div class="card"><div id="status" class="row">Loading…</div></div>
+      <div class="card">
+        <div class="status">
+          <div class="cell"><span class="k">Enabled</span>
+            <label class="toggle" title="Turn the jukebox on or off"><input id="enabledToggle" type="checkbox" disabled><span class="knob"></span></label></div>
+          <div class="cell"><span class="k">Box</span><span class="v" id="stBox">—</span><span class="sub" id="stSeen"></span></div>
+          <div class="cell"><span class="k">Signal</span><span class="v" id="stRssi">—</span><span class="sub" id="stBoxId"></span></div>
+          <div class="cell"><span class="k">Firmware</span><span class="v" id="stFw">—</span><span class="sub"></span></div>
+          <div class="cell"><span class="k">Jukebox</span><span class="v" id="stActive">—</span><span class="sub" id="stActiveWhy"></span></div>
+          <div class="cell"><span class="k">Playing</span><span class="v" id="stPlaying">—</span><span class="sub" id="stPlayingUid"></span></div>
+          <div class="err bad" id="stError"></div>
+          <div class="foot" id="stFoot"></div>
+        </div>
+      </div>
 
       <div class="tabs" role="tablist">
         <button role="tab" data-tab="tags">Tags</button>
@@ -214,7 +245,8 @@ class JukeboxPanel extends HTMLElement {
         <div id="drop" class="drop">Drop MP3 files here or <button id="btnPick">choose files</button>
           <input id="filePick" type="file" accept=".mp3,audio/mpeg" multiple hidden></div>
         <div id="uploads"></div>
-        <div class="muted" style="margin-bottom:8px">Play sends the file to the speaker chosen in Settings.</div>
+        <div class="muted">Play previews a file here in the browser; the speaker is not involved.</div>
+        <audio id="preview" controls preload="none"></audio>
         <table><thead><tr><th>File</th><th>Size</th><th></th></tr></thead><tbody id="fileRows"></tbody></table>
         <div id="fileMsg" class="msg"></div>
       </div>
@@ -236,6 +268,11 @@ class JukeboxPanel extends HTMLElement {
               <label><input type="radio" name="onRemove" value="stop"> Stop</label>
             </div></div>
           <div><label>Removal grace (seconds)</label><input id="sGrace" type="number" min="0" max="60" step="1"></div>
+          <div><label>Active hours (objects are ignored outside this window)</label>
+            <div class="hours">
+              <input id="sFrom" type="time"> <span class="muted">to</span> <input id="sUntil" type="time">
+              <button id="btnClearHours" type="button">Always</button>
+            </div></div>
         </div>
         <div class="row" style="margin-top:12px"><button id="btnSaveSettings" class="primary">Save settings</button></div>
         <div id="settingsMsg" class="msg"></div>
@@ -279,10 +316,16 @@ class JukeboxPanel extends HTMLElement {
     this.$("fileRows").onclick = (ev) => {
       const btn = ev.target.closest("button[data-act]");
       if (!btn) return;
-      if (btn.dataset.act === "play") this._playFile(btn.dataset.path);
-      if (btn.dataset.act === "pause") this._pause();
+      if (btn.dataset.act === "play") this._preview(btn.dataset.path);
+      if (btn.dataset.act === "pause") this.$("preview").pause();
       if (btn.dataset.act === "del") this._deleteFile(btn.dataset.path);
     };
+    const audio = this.$("preview");
+    for (const evName of ["play", "pause", "ended", "emptied"]) {
+      audio.addEventListener(evName, () => { this._previewPlaying = !audio.paused && !audio.ended; this._renderFiles(); });
+    }
+    this.$("enabledToggle").onchange = (ev) => this._setEnabled(ev.target.checked);
+    this.$("btnClearHours").onclick = () => { this.$("sFrom").value = ""; this.$("sUntil").value = ""; };
     this.$("sVolume").oninput = (ev) => { this.$("sVolLabel").textContent = ev.target.value; };
     this.$("sVolOn").onchange = (ev) => { this.$("sVolume").disabled = !ev.target.checked; };
     this.$("btnSaveSettings").onclick = () => this._saveSettings();
@@ -308,27 +351,34 @@ class JukeboxPanel extends HTMLElement {
 
   _renderStatus() {
     const s = this._status;
-    const parts = [];
-    parts.push(s.online
-      ? `<span class="ok">Online</span><span class="muted">last seen ${esc(ago(s.last_seen))}</span>`
-      : `<span class="bad">Offline</span><span class="muted">${s.last_seen ? "last seen " + esc(ago(s.last_seen)) : "never seen"}</span>`);
-    if (s.rssi != null) parts.push(`<span class="muted">RSSI ${esc(s.rssi)} dBm</span>`);
-    if (s.version) parts.push(`<span class="muted">firmware ${esc(s.version)}</span>`);
-    if (s.box_id) parts.push(`<span class="muted">box ${esc(s.box_id)}</span>`);
-    if (s.now_playing) {
-      const verb = s.player_state === "paused" ? "Paused" : "Now playing";
-      parts.push(`<span>${verb}: <b>${esc(s.now_playing.name)}</b></span>`);
-    } else {
-      parts.push(`<span class="muted">Nothing playing</span>`);
-    }
-    parts.push(`<span class="muted">webhook ${esc(s.webhook_id)} · integration ${esc(s.integration_version)}</span>`);
-    if (s.last_error) parts.push(`<span class="bad" style="flex-basis:100%">Last error: ${esc(s.last_error)}</span>`);
-    this.$("status").innerHTML = parts.join("");
-    if (this._playingPath() !== this._renderedPlaying) this._renderFiles();
+    const set = (id, text, cls) => { const el = this.$(id); el.textContent = text; if (cls !== undefined) el.className = cls; };
+    const toggle = this.$("enabledToggle");
+    toggle.disabled = false;
+    if (document.activeElement !== toggle) toggle.checked = !!s.enabled;
+    set("stBox", s.online ? "Online" : "Offline", `v ${s.online ? "ok" : "bad"}`);
+    set("stSeen", s.last_seen ? `seen ${ago(s.last_seen)}` : "never seen");
+    set("stRssi", s.rssi != null ? `${s.rssi} dBm` : "—");
+    set("stBoxId", s.box_id || "");
+    set("stFw", s.version || "—");
+    set("stActive", s.active ? "Active" : "Inactive", `v ${s.active ? "ok" : "muted"}`);
+    set("stActiveWhy", s.active ? "" : s.active_reason);
+    set("stPlaying", s.now_playing ? s.now_playing.name : "nothing", `v ${s.now_playing ? "" : "muted"}`);
+    set("stPlayingUid", s.now_playing?.uid || "");
+    set("stError", s.last_error ? `Last error: ${s.last_error}` : "");
+    set("stFoot", `webhook ${s.webhook_id} · integration ${s.integration_version}`);
   }
 
-  _playingPath() {
-    return this._status?.player_state === "playing" ? this._status?.now_playing?.path ?? null : null;
+  async _setEnabled(on) {
+    const toggle = this.$("enabledToggle");
+    toggle.disabled = true;
+    try {
+      this._settings = (await this._ws({ type: "jukebox/settings/set", settings: { enabled: on } })).settings;
+      await this._refreshStatus();
+    } catch (e) {
+      this.$("stError").textContent = `Could not change Enabled: ${e.message || e}`;
+      toggle.checked = !on;
+    }
+    toggle.disabled = false;
   }
 
   _renderScan() {
@@ -438,11 +488,10 @@ class JukeboxPanel extends HTMLElement {
   // ---------- media ----------
 
   _renderFiles() {
-    const playingPath = this._playingPath();
-    this._renderedPlaying = playingPath;
     this.$("fileRows").innerHTML = this._files.length
       ? this._files.map((f) => {
-          const ctl = f.path === playingPath
+          const playing = this._previewPlaying && f.path === this._previewPath;
+          const ctl = playing
             ? `<button data-act="pause" data-path="${esc(f.path)}" class="primary">Pause</button>`
             : `<button data-act="play" data-path="${esc(f.path)}">Play</button>`;
           return `<tr><td>${esc(f.path)}</td><td>${fmtSize(f.size)}</td>
@@ -451,23 +500,20 @@ class JukeboxPanel extends HTMLElement {
       : `<tr><td colspan="3" class="muted">No files yet.</td></tr>`;
   }
 
-  async _playFile(path) {
+  async _preview(path) {
+    const audio = this.$("preview");
+    if (path === this._previewPath && audio.getAttribute("src")) { audio.play(); return; }
+    const file = this._files.find((f) => f.path === path);
+    if (!file) return;
     try {
-      await this._ws({ type: "jukebox/media/play", path });
-      this._say("fileMsg", `Playing ${path}`, true);
-      setTimeout(() => this._refreshStatus(), 500);
+      // HA signs a short-lived URL for the file; the browser streams it directly.
+      const r = await this._ws({ type: "media_source/resolve_media", media_content_id: file.uri });
+      this._previewPath = path;
+      audio.src = r.url;
+      await audio.play();
+      this._say("fileMsg", "", true);
     } catch (e) {
-      this._say("fileMsg", e.message || String(e), false);
-    }
-  }
-
-  async _pause() {
-    try {
-      await this._ws({ type: "jukebox/pause" });
-      this._say("fileMsg", "Paused", true);
-      setTimeout(() => this._refreshStatus(), 500);
-    } catch (e) {
-      this._say("fileMsg", e.message || String(e), false);
+      this._say("fileMsg", `Cannot preview ${path}: ${e.message || e}`, false);
     }
   }
 
@@ -516,6 +562,7 @@ class JukeboxPanel extends HTMLElement {
     if (!confirm(`Delete "${path}"?`)) return;
     try {
       await this._ws({ type: "jukebox/media/delete", path });
+      if (path === this._previewPath) { const a = this.$("preview"); a.pause(); a.removeAttribute("src"); a.load(); this._previewPath = null; }
       await this._refreshFiles();
       this._say("fileMsg", `Deleted ${path}`, true);
     } catch (e) {
@@ -552,6 +599,9 @@ class JukeboxPanel extends HTMLElement {
     const radio = this.shadowRoot.querySelector(`input[name=onRemove][value=${s.on_remove}]`);
     if (radio) radio.checked = true;
     this.$("sGrace").value = s.remove_grace_s;
+    this.$("sFrom").value = s.active_from || "";
+    this.$("sUntil").value = s.active_until || "";
+    this.$("enabledToggle").checked = !!s.enabled;
   }
 
   async _saveSettings() {
@@ -562,11 +612,15 @@ class JukeboxPanel extends HTMLElement {
       volume: this.$("sVolOn").checked ? Number(this.$("sVolume").value) / 100 : null,
       on_remove: onRemove,
       remove_grace_s: grace,
+      enabled: this._settings.enabled,
+      active_from: this.$("sFrom").value || null,
+      active_until: this.$("sUntil").value || null,
     };
     try {
       this._settings = (await this._ws({ type: "jukebox/settings/set", settings })).settings;
       this._renderSettings();
       this._say("settingsMsg", "Saved", true);
+      this._refreshStatus();
     } catch (e) {
       this._say("settingsMsg", e.message || String(e), false);
     }

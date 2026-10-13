@@ -16,7 +16,7 @@ from homeassistant.helpers.event import async_call_later
 from homeassistant.util import dt as dt_util
 
 from .const import MEDIA_CONTENT_TYPE, OFFLINE_AFTER_S, ON_REMOVE_NONE, ON_REMOVE_PAUSE
-from .media import MediaError, MediaLibrary
+from .media import MediaLibrary
 from .store import JukeboxStore, StoreError, Tag
 
 _LOGGER = logging.getLogger(__name__)
@@ -77,6 +77,8 @@ class JukeboxController:
         self.last_scanned = {"uid": uid, "known": tag is not None, "at": dt_util.utcnow().isoformat()}
         if tag is None:
             return False
+        if not self.is_active():
+            return True  # known, but the jukebox is off or outside its hours: nothing plays
         if self.current_uid == uid and self._grace_cancel is not None:
             self._cancel_grace()
             return True  # back within the grace window: keep playing
@@ -114,6 +116,31 @@ class JukeboxController:
         service = "media_pause" if action == ON_REMOVE_PAUSE else "media_stop"
         await self._async_call(service, {})
 
+    # ----- enabled / active hours -----
+
+    def _in_window(self, now_local: datetime) -> bool:
+        s = self._store.settings
+        if s.active_from is None or s.active_until is None:
+            return True
+        now = now_local.hour * 60 + now_local.minute
+        start = int(s.active_from[:2]) * 60 + int(s.active_from[3:])
+        end = int(s.active_until[:2]) * 60 + int(s.active_until[3:])
+        if start < end:
+            return start <= now < end
+        return now >= start or now < end  # window crosses midnight
+
+    def is_active(self, now_local: datetime | None = None) -> bool:
+        s = self._store.settings
+        return s.enabled and self._in_window(now_local or dt_util.now())
+
+    def active_reason(self, now_local: datetime | None = None) -> str:
+        s = self._store.settings
+        if not s.enabled:
+            return "off"
+        if not self._in_window(now_local or dt_util.now()):
+            return f"outside {s.active_from}\u2013{s.active_until}"
+        return "active"
+
     # ----- panel -----
 
     async def async_play(self, uid: str) -> None:
@@ -122,23 +149,16 @@ class JukeboxController:
             raise StoreError("unknown tag")
         await self._async_play_tag(uid, tag)
 
-    async def async_play_file(self, path: str) -> None:
-        """Play a library file on the speaker without touching the object state."""
-        if not self._media.exists(path):
-            raise MediaError("file not found")
-        await self._async_play_path(path, name=path, uid=None)
-
-    async def async_pause(self) -> None:
-        await self._async_call("media_pause", {})
-
     def snapshot(self) -> dict[str, Any]:
-        state = self._hass.states.get(self._store.settings.player)
+        now_local = dt_util.now()
         return {
             "current_uid": self.current_uid,
             "last_scanned": self.last_scanned,
             "now_playing": self.now_playing,
             "last_error": self.last_error,
-            "player_state": state.state if state is not None else None,
+            "enabled": self._store.settings.enabled,
+            "active": self.is_active(now_local),
+            "active_reason": self.active_reason(now_local),
         }
 
     async def async_shutdown(self) -> None:
@@ -147,9 +167,7 @@ class JukeboxController:
     # ----- playback -----
 
     async def _async_play_tag(self, uid: str, tag: Tag) -> None:
-        await self._async_play_path(tag.media_path, name=tag.name, uid=uid)
-
-    async def _async_play_path(self, path: str, *, name: str, uid: str | None) -> None:
+        path, name = tag.media_path, tag.name
         settings = self._store.settings
         ok = True
         if settings.volume is not None:

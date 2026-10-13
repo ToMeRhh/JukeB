@@ -24,6 +24,8 @@ async def test_defaults_seed_player_from_entry(hass):
     assert s.volume == 0.3
     assert s.on_remove == "pause"
     assert s.remove_grace_s == 2
+    assert s.enabled is True
+    assert s.active_from is None and s.active_until is None
     assert store.tags == {}
 
 
@@ -133,3 +135,30 @@ async def test_corrupt_storage_falls_back_to_defaults(hass, hass_storage):
     store = await make_store(hass)
     assert store.settings.player == PLAYER
     assert store.tags == {}
+
+
+async def test_enabled_and_window_roundtrip(hass, hass_storage):
+    store = await make_store(hass)
+    s = await store.async_set_settings({"enabled": False, "active_from": "7:05", "active_until": "20:00"})
+    assert s.enabled is False
+    assert s.active_from == "07:05" and s.active_until == "20:00"
+    assert hass_storage["jukebox"]["data"]["settings"]["active_from"] == "07:05"
+    s = await store.async_set_settings({"active_from": None, "active_until": None})
+    assert s.active_from is None and s.active_until is None
+
+
+async def test_window_validation(hass):
+    store = await make_store(hass)
+    with pytest.raises(StoreError, match="enabled"):
+        await store.async_set_settings({"enabled": "yes"})
+    with pytest.raises(StoreError, match="HH:MM"):
+        await store.async_set_settings({"active_from": "25:00", "active_until": "20:00"})
+    with pytest.raises(StoreError, match="HH:MM"):
+        await store.async_set_settings({"active_from": "soon", "active_until": "20:00"})
+    with pytest.raises(StoreError, match="both"):
+        await store.async_set_settings({"active_from": "07:00"})
+    with pytest.raises(StoreError, match="differ"):
+        await store.async_set_settings({"active_from": "07:00", "active_until": "07:00"})
+    # overnight windows are fine
+    s = await store.async_set_settings({"active_from": "19:00", "active_until": "07:00"})
+    assert s.active_from == "19:00" and s.active_until == "07:00"

@@ -7,8 +7,9 @@ Guidance for AI-assisted work in this repository.
 A kids' RFID music box. An ESP32 + RC522 reader POSTs `present` / `absent` /
 `heartbeat` events to a Home Assistant webhook. The `jukebox` custom integration
 owns everything else: tag registry, MP3 library, playback on a `media_player`,
-removal behaviour, and the Jukebox sidebar panel. The firmware has no UI and no
-state.
+removal behaviour, enabled toggle and active hours, the Jukebox sidebar panel, and
+a Jukebox device with an online binary sensor and an enabled switch. The firmware
+has no UI and no state.
 
 ## Layout
 
@@ -42,7 +43,12 @@ Firmware (run from `firmware/`, PlatformIO at `~/.platformio/penv/bin/pio`):
   `send_error(id, "invalid", message)`.
 - Websocket commands and the upload view are admin only. Global registrations
   (websocket, view, static path) happen once per HA run behind `DATA_SETUP_DONE`;
-  the webhook and panel are registered per entry and removed on unload.
+  the webhook, panel and entity platforms are registered per entry and removed on unload.
+- Entities (`binary_sensor.py`, `switch.py`, base in `entity.py`) never poll: `JukeboxData.touch`
+  (box events, offline timer) and the store's settings listener send `SIGNAL_UPDATE` and the
+  entities write state. New entities subclass `JukeboxEntity` and read from `JukeboxData`.
+- "Inactive" (enabled off or outside active hours) only suppresses playback for new objects;
+  scans are still recorded and removal behaviour is unchanged. Decided 2026-10-13.
 - Any change to `frontend/jukebox-panel.js` bumps `VERSION` in `const.py` and
   `manifest.json` together: the `?v=` query on the module URL is the only thing that
   makes browsers refetch the panel. `test_panel.py` pins both.

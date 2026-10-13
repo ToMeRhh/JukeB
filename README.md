@@ -116,8 +116,12 @@ In the **Jukebox** panel:
 3. Press **Use this UID**, give the toy a name, pick a song and press **Add tag**.
 4. Lift the toy and put it back: the box blinks once and the song plays.
 
-Repeat for every toy. In the **Settings** tab you can change the speaker, set a fixed volume, and
-choose what happens when a toy is lifted.
+Repeat for every toy. In the **Settings** tab you can change the speaker, set a fixed volume,
+choose what happens when a toy is lifted, and set active hours (for example, no music after
+bedtime). The **Enabled** toggle at the top of the panel switches the box off for a while.
+
+Home Assistant also gets a **Jukebox** device with a `binary_sensor.jukebox_online` and a
+`switch.jukebox_enabled`, so you can use them in automations and dashboards.
 
 > 📷 **Photo placeholder:** a child placing a toy on the box.
 > Save as `docs/images/in-use.jpg`.

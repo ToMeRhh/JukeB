@@ -39,7 +39,14 @@ the pieces fit together.
 4. Open **Jukebox** in the sidebar (admin users only). It shows *Offline* until
    the box sends its first event; [flash the firmware](../firmware/README.md) next.
 
-The integration is a single-instance service: it adds no devices or entities.
+The integration adds one **Jukebox** device with two entities for automations and
+dashboards:
+
+- `binary_sensor.jukebox_online` — on while the box has sent an event in the last 90 s;
+  attributes carry RSSI, uptime, firmware version and last-seen time.
+- `switch.jukebox_enabled` — the same Enabled toggle as the panel. Off means objects
+  placed on the box are ignored (nothing starts; whatever is playing keeps its
+  normal removal behaviour).
 
 ## Update
 
@@ -57,21 +64,24 @@ those too for a clean slate.
 
 ## Panel guide
 
-The status bar at the top is always visible: Online/Offline (offline after 90 s
-without an event), last seen, RSSI, firmware version, what is playing or paused,
-and the last playback error. Below it are three tabs.
+The status bar at the top has a fixed layout: the Enabled toggle, Box (Online/Offline
+and last seen), Signal, Firmware, Jukebox (Active, or Inactive with the reason: off or
+outside the active hours), Playing, and an error line. Below it are three tabs.
 
 - **Tags** — *Register an object* shows the last scanned UID. Tap an object on
   the box, press *Use this UID*, give it a name, pick a file, *Add tag*. The
-  table lists every tag with Play, Edit and Delete.
+  table lists every tag with Play (on the speaker), Edit and Delete. Scans are
+  recorded even while the jukebox is inactive, so you can register tags any time.
 - **Media** — drop MP3 files to upload (max 50 MB each; any file name works,
   including non-Latin scripts). Files are stored in `<media folder>/jukebox/` and
-  play as `media-source://media_source/<media dir>/jukebox/<file>`. Each file
-  has Play, which sends it to the speaker, and Pause while it is playing. Deleting
-  a file that a tag uses is refused.
+  play as `media-source://media_source/<media dir>/jukebox/<file>`. Play previews
+  the file in your browser through the player above the list; the speaker is not
+  involved. Deleting a file that a tag uses is refused.
 - **Settings** — speaker, an optional volume to set before each play (untick to
   leave the speaker's volume alone), what happens when the object is removed
-  (keep playing / pause / stop) and the grace period that ignores brief lifts.
+  (keep playing / pause / stop), the grace period that ignores brief lifts, and
+  optional active hours (HA local time, may cross midnight, e.g. 19:00 to 07:00):
+  outside the window objects are ignored. *Always* clears the window.
 
 ## Protocol
 
