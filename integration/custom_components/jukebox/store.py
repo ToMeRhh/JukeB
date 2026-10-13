@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -34,12 +35,28 @@ def normalize_uid(uid: Any) -> str:
     return text
 
 
+_TIME_RE = re.compile(r"^(\d{1,2}):(\d{2})$")
+
+
+def _parse_time(value: Any, key: str) -> str | None:
+    """Return a normalised "HH:MM" string, or None for null/empty."""
+    if value is None or value == "":
+        return None
+    m = _TIME_RE.match(str(value).strip())
+    if not m or int(m.group(1)) > 23 or int(m.group(2)) > 59:
+        raise StoreError(f"{key} must be a time like HH:MM")
+    return f"{int(m.group(1)):02d}:{m.group(2)}"
+
+
 @dataclass(frozen=True)
 class Settings:
     player: str
     volume: float | None  # None: do not touch the speaker's volume before playing
     on_remove: str
     remove_grace_s: int
+    enabled: bool = True
+    active_from: str | None = None  # "HH:MM" local time; both set = window applies
+    active_until: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -47,6 +64,9 @@ class Settings:
             "volume": self.volume,
             "on_remove": self.on_remove,
             "remove_grace_s": self.remove_grace_s,
+            "enabled": self.enabled,
+            "active_from": self.active_from,
+            "active_until": self.active_until,
         }
 
 
@@ -106,7 +126,18 @@ def _validate_settings(current: Settings, partial: dict[str, Any]) -> Settings:
         raise StoreError("remove_grace_s must be a whole number of seconds") from err
     grace = min(MAX_GRACE_S, max(0, grace))
 
-    return Settings(player, volume, on_remove, grace)
+    enabled = values["enabled"]
+    if not isinstance(enabled, bool):
+        raise StoreError("enabled must be true or false")
+
+    active_from = _parse_time(values["active_from"], "active_from")
+    active_until = _parse_time(values["active_until"], "active_until")
+    if (active_from is None) != (active_until is None):
+        raise StoreError("active_from and active_until must both be set or both be empty")
+    if active_from is not None and active_from == active_until:
+        raise StoreError("active_from and active_until must differ")
+
+    return Settings(player, volume, on_remove, grace, enabled, active_from, active_until)
 
 
 class JukeboxStore:
