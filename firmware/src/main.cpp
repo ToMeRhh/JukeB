@@ -18,8 +18,14 @@
 
 namespace {
 
+// The RC522 header (SDA SCK MOSI MISO IRQ GND RST 3.3V) lands on the bottom eight pins of the
+// DevKit's right-hand row (D5 TX2 RX2 D4 D2 D15 GND 3V3) in order; only GND and RST swap places.
+// GPIO16/17 are PSRAM on WROVER modules, so this layout needs a WROOM board.
 constexpr uint8_t kSsPin = 5;
-constexpr uint8_t kRstPin = 21;  // held HIGH; the library uses software reset
+constexpr uint8_t kSckPin = 17;
+constexpr uint8_t kMosiPin = 16;
+constexpr uint8_t kMisoPin = 4;
+constexpr uint8_t kRstPin = 15;  // held HIGH; the library uses software reset
 constexpr uint8_t kLedPin = 2;
 constexpr uint32_t kHeartbeatMs = 30000;
 constexpr size_t kQueueMax = 16;
@@ -34,7 +40,7 @@ struct Pending {
 };
 
 std::deque<Pending> queue;
-TagReader reader(kSsPin);
+TagReader reader(kSsPin, kSckPin, kMisoPin, kMosiPin);
 WifiLink wifi;
 Led led(kLedPin);
 uint32_t lastHeartbeat = 0;

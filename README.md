@@ -35,7 +35,8 @@ panel in Home Assistant.
 
 ## Hardware
 
-ESP32 dev board + RFID-RC522: SS→5, SCK→18, MOSI→23, MISO→19, RST→21, 3.3V, GND.
+ESP32 DevKit V1 (WROOM) + RFID-RC522: SDA→5, SCK→17, MOSI→16, MISO→4, RST→15, 3.3V, GND. The
+reader's header lines up with the bottom eight pins of one ESP32 row; see `firmware/README.md`.
 
 ## Development
 
