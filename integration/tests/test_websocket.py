@@ -76,18 +76,31 @@ async def test_play(hass, ws):
     assert reply["error"]["message"] == "unknown tag"
 
 
-async def test_media_play_and_pause(hass, ws):
-    play = async_mock_service(hass, "media_player", "play_media")
-    pause = async_mock_service(hass, "media_player", "media_pause")
-    async_mock_service(hass, "media_player", "volume_set")
-    reply = await call(ws, "jukebox/media/play", path="dino.mp3")
-    assert reply["success"] and reply["result"] == {}
-    assert play[0].data["media_content_id"].endswith("/jukebox/dino.mp3")
-    assert (await call(ws, "jukebox/status"))["result"]["now_playing"]["name"] == "dino.mp3"
-    reply = await call(ws, "jukebox/media/play", path="missing.mp3")
-    assert reply["error"]["message"] == "file not found"
-    reply = await call(ws, "jukebox/pause")
-    assert reply["success"] and len(pause) == 1
+async def test_removed_server_side_file_playback_commands(hass, ws):
+    for msg_type in ("jukebox/media/play", "jukebox/pause"):
+        reply = await call(ws, msg_type, path="dino.mp3")
+        assert reply["error"]["code"] == "unknown_command"
+
+
+async def test_media_resolves_to_playable_url(hass, ws, hass_client):
+    """The uri in media/list resolves through HA's own websocket to a URL the browser can play."""
+    files = (await call(ws, "jukebox/media/list"))["result"]["files"]
+    uri = next(f["uri"] for f in files if f["path"] == "dino.mp3")
+    reply = await call(ws, "media_source/resolve_media", media_content_id=uri)
+    assert reply["success"] and reply["result"]["mime_type"] == "audio/mpeg"
+    client = await hass_client()
+    resp = await client.get(reply["result"]["url"])
+    assert resp.status == 200 and await resp.read() == b"abc"
+
+
+async def test_status_reports_enabled_and_active(hass, ws):
+    r = (await call(ws, "jukebox/status"))["result"]
+    assert r["enabled"] is True and r["active"] is True and r["active_reason"] == "active"
+    assert "player_state" not in r
+    reply = await call(ws, "jukebox/settings/set", settings={"enabled": False})
+    assert reply["success"] and reply["result"]["settings"]["enabled"] is False
+    r = (await call(ws, "jukebox/status"))["result"]
+    assert r["enabled"] is False and r["active"] is False and r["active_reason"] == "off"
 
 
 async def test_settings(hass, ws):
@@ -97,6 +110,9 @@ async def test_settings(hass, ws):
         "volume": 0.3,
         "on_remove": "pause",
         "remove_grace_s": 2,
+        "enabled": True,
+        "active_from": None,
+        "active_until": None,
     }
     reply = await call(ws, "jukebox/settings/set", settings={"volume": 0.8, "on_remove": "stop"})
     assert reply["success"]
@@ -109,10 +125,14 @@ async def test_settings(hass, ws):
 
 async def test_media_list_and_delete(hass, ws):
     reply = await call(ws, "jukebox/media/list")
-    assert reply["result"]["files"] == [{"path": "cat.mp3", "size": 2}, {"path": "dino.mp3", "size": 3}]
+    prefix = "media-source://media_source/media/jukebox/"
+    assert reply["result"]["files"] == [
+        {"path": "cat.mp3", "size": 2, "uri": prefix + "cat.mp3"},
+        {"path": "dino.mp3", "size": 3, "uri": prefix + "dino.mp3"},
+    ]
     reply = await call(ws, "jukebox/media/delete", path="cat.mp3")
     assert reply["success"]
-    assert (await call(ws, "jukebox/media/list"))["result"]["files"] == [{"path": "dino.mp3", "size": 3}]
+    assert [f["path"] for f in (await call(ws, "jukebox/media/list"))["result"]["files"]] == ["dino.mp3"]
     reply = await call(ws, "jukebox/media/delete", path="../secret.mp3")
     assert reply["error"]["code"] == "invalid"
 

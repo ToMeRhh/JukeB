@@ -176,46 +176,65 @@ async def test_snapshot(hass, ctl, services):
         "last_scanned": None,
         "now_playing": None,
         "last_error": None,
-        "player_state": "idle",
+        "enabled": True,
+        "active": True,
+        "active_reason": "active",
     }
-    hass.states.async_set(PLAYER, "playing")
-    assert ctl.snapshot()["player_state"] == "playing"
-    hass.states.async_remove(PLAYER)
-    assert ctl.snapshot()["player_state"] is None
 
 
-async def test_play_file_from_library(hass, ctl, services):
-    await ctl.async_play_file("cat.mp3")
-    assert services["volume_set"][0].data["volume_level"] == 0.3
-    assert services["play_media"][0].data["media_content_id"] == "media-source://media_source/media/jukebox/cat.mp3"
-    assert ctl.now_playing == {"uid": None, "name": "cat.mp3", "path": "cat.mp3", "at": ctl.now_playing["at"]}
-    assert ctl.current_uid is None  # library playback is not an object on the box
+async def test_disabled_ignores_new_objects_but_records_scan(hass, ctl, services):
+    await ctl._store.async_set_settings({"enabled": False})
+    assert ctl.snapshot()["active"] is False and ctl.snapshot()["active_reason"] == "off"
+    assert await ctl.async_present("AA:01") is True  # still "known" for the box's LED
+    await hass.async_block_till_done()
+    assert services["play_media"] == []
+    assert ctl.current_uid is None
+    assert ctl.last_scanned["uid"] == "AA:01" and ctl.last_scanned["known"] is True
 
 
-async def test_play_file_keeps_current_tag(hass, ctl, services):
+async def test_disabling_keeps_current_song_and_removal_behaviour(hass, ctl, services):
     assert await ctl.async_present("AA:01") is True
     await hass.async_block_till_done()
-    await ctl.async_play_file("cat.mp3")
-    assert ctl.current_uid == "AA:01"
+    await ctl._store.async_set_settings({"enabled": False})
+    assert ctl.now_playing["uid"] == "AA:01"
     await ctl.async_absent("AA:01")
     await advance(hass, 2)
-    assert ctl.current_uid is None and ctl.now_playing is None
+    assert len(services["media_pause"]) == 1
+    assert ctl.current_uid is None
 
 
-async def test_play_file_unknown_or_traversal(hass, ctl, services):
-    from custom_components.jukebox.media import MediaError
+@pytest.mark.parametrize(
+    ("window", "local_hhmm", "active"),
+    [
+        (("07:00", "20:00"), "06:59", False),
+        (("07:00", "20:00"), "07:00", True),
+        (("07:00", "20:00"), "19:59", True),
+        (("07:00", "20:00"), "20:00", False),
+        (("19:00", "07:00"), "23:30", True),  # overnight
+        (("19:00", "07:00"), "03:00", True),
+        (("19:00", "07:00"), "12:00", False),
+    ],
+)
+async def test_active_hours(hass, ctl, services, window, local_hhmm, active):
+    await ctl._store.async_set_settings({"active_from": window[0], "active_until": window[1]})
+    hh, mm = (int(x) for x in local_hhmm.split(":"))
+    now_local = dt_util.now().replace(hour=hh, minute=mm, second=0)
+    assert ctl.is_active(now_local) is active
+    assert ctl.active_reason(now_local) == ("active" if active else f"outside {window[0]}\u2013{window[1]}")
 
-    with pytest.raises(MediaError, match="file not found"):
-        await ctl.async_play_file("nope.mp3")
-    with pytest.raises(MediaError):
-        await ctl.async_play_file("../secret.mp3")
+
+async def test_outside_hours_ignores_new_objects(hass, ctl, services, freezer):
+    await ctl._store.async_set_settings({"active_from": "07:00", "active_until": "20:00"})
+    freezer.move_to(dt_util.now().replace(hour=22, minute=0))
+    assert ctl.snapshot()["active"] is False
+    assert await ctl.async_present("AA:01") is True
+    await hass.async_block_till_done()
     assert services["play_media"] == []
-
-
-async def test_pause(hass, ctl, services):
-    await ctl.async_pause()
-    assert services["media_pause"][0].data == {"entity_id": PLAYER}
-    assert ctl.last_error is None
+    freezer.move_to(dt_util.now().replace(hour=9, minute=0))
+    assert ctl.snapshot()["active"] is True
+    assert await ctl.async_present("AA:01") is True
+    await hass.async_block_till_done()
+    assert len(services["play_media"]) == 1
 
 
 def test_box_status_online_offline():
