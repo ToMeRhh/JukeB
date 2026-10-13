@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 520" width="860" height="520" font-family="Helvetica, Arial, sans-serif">
+<rect width="860" height="520" rx="12" fill="#ffffff"/>
+<text x="430" y="40" text-anchor="middle" font-size="20" font-weight="bold" fill="#24292f">JukeB wiring: ESP32 DevKit V1 (30-pin) to RC522</text>
+<text x="430" y="64" text-anchor="middle" font-size="12" fill="#57606a">7 jumper wires, all on one header row of the ESP32. Power the RC522 from 3.3 V only.</text>
+<rect x="150" y="85" width="210" height="380" rx="8" fill="#1b3a5c"/>
+<rect x="212" y="110" width="80" height="120" rx="3" fill="#b8c2cc" stroke="#8a96a3"/>
+<text x="252" y="175" text-anchor="middle" font-size="13" fill="#24292f">ESP32</text>
+<text x="252" y="192" text-anchor="middle" font-size="10" fill="#24292f">WROOM-32</text>
+<rect x="235" y="455" width="40" height="22" rx="3" fill="#9aa4ad"/>
+<text x="255" y="498" text-anchor="middle" font-size="11" fill="#57606a">micro-USB (5 V power)</text>
+<circle cx="255" cy="300" r="5" fill="#58a6ff"/><text x="255" y="320" text-anchor="middle" font-size="10" fill="#d0d7de">LED (GPIO2)</text>
+<circle cx="165" cy="110" r="4" fill="#d4af37"/><text x="176" y="114" font-size="10" fill="#8b949e">EN</text>
+<circle cx="165" cy="134" r="4" fill="#d4af37"/><text x="176" y="138" font-size="10" fill="#8b949e">VP</text>
+<circle cx="165" cy="158" r="4" fill="#d4af37"/><text x="176" y="162" font-size="10" fill="#8b949e">VN</text>
+<circle cx="165" cy="182" r="4" fill="#d4af37"/><text x="176" y="186" font-size="10" fill="#8b949e">D34</text>
+<circle cx="165" cy="206" r="4" fill="#d4af37"/><text x="176" y="210" font-size="10" fill="#8b949e">D35</text>
+<circle cx="165" cy="230" r="4" fill="#d4af37"/><text x="176" y="234" font-size="10" fill="#8b949e">D32</text>
+<circle cx="165" cy="254" r="4" fill="#d4af37"/><text x="176" y="258" font-size="10" fill="#8b949e">D33</text>
+<circle cx="165" cy="278" r="4" fill="#d4af37"/><text x="176" y="282" font-size="10" fill="#8b949e">D25</text>
+<circle cx="165" cy="302" r="4" fill="#d4af37"/><text x="176" y="306" font-size="10" fill="#8b949e">D26</text>
+<circle cx="165" cy="326" r="4" fill="#d4af37"/><text x="176" y="330" font-size="10" fill="#8b949e">D27</text>
+<circle cx="165" cy="350" r="4" fill="#d4af37"/><text x="176" y="354" font-size="10" fill="#8b949e">D14</text>
+<circle cx="165" cy="374" r="4" fill="#d4af37"/><text x="176" y="378" font-size="10" fill="#8b949e">D12</text>
+<circle cx="165" cy="398" r="4" fill="#d4af37"/><text x="176" y="402" font-size="10" fill="#8b949e">D13</text>
+<circle cx="165" cy="422" r="4" fill="#d4af37"/><text x="176" y="426" font-size="10" fill="#8b949e">GND</text>
+<circle cx="165" cy="446" r="4" fill="#d4af37"/><text x="176" y="450" font-size="10" fill="#8b949e">VIN</text>
+<circle cx="340" cy="110" r="5" fill="#d4af37"/>
+<text x="328" y="114" text-anchor="end" font-size="11" fill="#ffffff" font-weight="bold">D23</text>
+<circle cx="340" cy="134" r="4" fill="#d4af37"/>
+<text x="328" y="138" text-anchor="end" font-size="11" fill="#8b949e" font-weight="normal">D22</text>
+<circle cx="340" cy="158" r="4" fill="#d4af37"/>
+<text x="328" y="162" text-anchor="end" font-size="11" fill="#8b949e" font-weight="normal">TX0</text>
+<circle cx="340" cy="182" r="4" fill="#d4af37"/>
+<text x="328" y="186" text-anchor="end" font-size="11" fill="#8b949e" font-weight="normal">RX0</text>
+<circle cx="340" cy="206" r="5" fill="#d4af37"/>
+<text x="328" y="210" text-anchor="end" font-size="11" fill="#ffffff" font-weight="bold">D21</text>
+<circle cx="340" cy="230" r="5" fill="#d4af37"/>
+<text x="328" y="234" text-anchor="end" font-size="11" fill="#ffffff" font-weight="bold">D19</text>
+<circle cx="340" cy="254" r="5" fill="#d4af37"/>
+<text x="328" y="258" text-anchor="end" font-size="11" fill="#ffffff" font-weight="bold">D18</text>
+<circle cx="340" cy="278" r="5" fill="#d4af37"/>
+<text x="328" y="282" text-anchor="end" font-size="11" fill="#ffffff" font-weight="bold">D5</text>
+<circle cx="340" cy="302" r="4" fill="#d4af37"/>
+<text x="328" y="306" text-anchor="end" font-size="11" fill="#8b949e" font-weight="normal">TX2</text>
+<circle cx="340" cy="326" r="4" fill="#d4af37"/>
+<text x="328" y="330" text-anchor="end" font-size="11" fill="#8b949e" font-weight="normal">RX2</text>
+<circle cx="340" cy="350" r="4" fill="#d4af37"/>
+<text x="328" y="354" text-anchor="end" font-size="11" fill="#8b949e" font-weight="normal">D4</text>
+<circle cx="340" cy="374" r="4" fill="#d4af37"/>
+<text x="328" y="378" text-anchor="end" font-size="11" fill="#8b949e" font-weight="normal">D2</text>
+<circle cx="340" cy="398" r="4" fill="#d4af37"/>
+<text x="328" y="402" text-anchor="end" font-size="11" fill="#8b949e" font-weight="normal">D15</text>
+<circle cx="340" cy="422" r="5" fill="#d4af37"/>
+<text x="328" y="426" text-anchor="end" font-size="11" fill="#ffffff" font-weight="bold">GND</text>
+<circle cx="340" cy="446" r="5" fill="#d4af37"/>
+<text x="328" y="450" text-anchor="end" font-size="11" fill="#ffffff" font-weight="bold">3V3</text>
+<rect x="645" y="120" width="170" height="290" rx="6" fill="#1f5fa8"/>
+<rect x="742" y="150" width="60" height="220" rx="4" fill="none" stroke="#9cc3f0" stroke-width="3"/>
+<text x="772" y="255" text-anchor="middle" font-size="14" font-weight="bold" fill="#ffffff">RC522</text>
+<text x="772" y="273" text-anchor="middle" font-size="10" fill="#d0e4fa">antenna</text>
+<circle cx="660" cy="150" r="5" fill="#d4af37"/><text x="672" y="154" font-size="11" fill="#ffffff" font-weight="bold">SDA</text>
+<circle cx="660" cy="182" r="5" fill="#d4af37"/><text x="672" y="186" font-size="11" fill="#ffffff" font-weight="bold">SCK</text>
+<circle cx="660" cy="214" r="5" fill="#d4af37"/><text x="672" y="218" font-size="11" fill="#ffffff" font-weight="bold">MOSI</text>
+<circle cx="660" cy="246" r="5" fill="#d4af37"/><text x="672" y="250" font-size="11" fill="#ffffff" font-weight="bold">MISO</text>
+<circle cx="660" cy="278" r="5" fill="#d4af37"/><text x="672" y="282" font-size="11" fill="#ffffff" font-weight="bold">IRQ</text>
+<circle cx="660" cy="310" r="5" fill="#d4af37"/><text x="672" y="314" font-size="11" fill="#ffffff" font-weight="bold">GND</text>
+<circle cx="660" cy="342" r="5" fill="#d4af37"/><text x="672" y="346" font-size="11" fill="#ffffff" font-weight="bold">RST</text>
+<circle cx="660" cy="374" r="5" fill="#d4af37"/><text x="672" y="378" font-size="11" fill="#ffffff" font-weight="bold">3.3V</text>
+<text x="672" y="294" font-size="9" fill="#d0e4fa">(unused)</text>
+<polyline points="340,278 400,278 400,150 660,150" fill="none" stroke="#e36209" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="340,254 430,254 430,182 660,182" fill="none" stroke="#d4a017" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="340,110 460,110 460,214 660,214" fill="none" stroke="#1f6feb" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="340,230 490,230 490,246 660,246" fill="none" stroke="#1a7f37" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="340,422 520,422 520,310 660,310" fill="none" stroke="#24292f" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="340,446 550,446 550,374 660,374" fill="none" stroke="#cf222e" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="340,206 590,206 590,342 660,342" fill="none" stroke="#8250df" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

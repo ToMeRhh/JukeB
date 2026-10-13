@@ -3,7 +3,23 @@
 ESP32 + RC522. Reports which tag is on the reader to the Home Assistant Jukebox
 integration. It makes no decisions and stores nothing.
 
+This folder is one part of JukeB; the [top-level README](../README.md) shows how
+the pieces fit together. Install the [Home Assistant integration](../home-assistant/README.md)
+first: you need its webhook ID here.
+
+## What you need
+
+- ESP32 DevKit V1 (30-pin, ESP32-WROOM-32) or another ESP32 dev board.
+- RC522 RFID reader module and 13.56 MHz tags (MIFARE Classic, NTAG).
+- 7 female-to-female jumper wires and a micro-USB **data** cable (some cables only charge).
+- [PlatformIO](https://platformio.org/install): either the VS Code extension or the
+  command line (`pipx install platformio` or `pip install platformio`).
+- On Windows and macOS you may need the USB-serial driver for your board's chip
+  (CP210x or CH340).
+
 ## Wiring
+
+![Wiring diagram](../docs/images/wiring.svg)
 
 | RC522 | ESP32 |
 |---|---|
@@ -15,9 +31,11 @@ integration. It makes no decisions and stores nothing.
 | 3.3V | 3.3V |
 | GND | GND |
 
-Onboard LED on GPIO2.
+Onboard LED on GPIO2. Power the RC522 from 3.3 V, never 5 V. IRQ is not connected.
 
 ## Configure
+
+From this `firmware/` folder:
 
 ```bash
 cp include/config.example.h include/config.h
@@ -28,14 +46,30 @@ address if `homeassistant.local` does not resolve on your network), the webhook
 ID you entered when adding the integration, and a box ID (any short name).
 `config.h` is git-ignored.
 
+```c
+#define JUKEBOX_WIFI_SSID     "MyWifi"            // 2.4 GHz network; the ESP32 has no 5 GHz
+#define JUKEBOX_WIFI_PASSWORD "secret"
+#define JUKEBOX_HA_URL        "http://192.168.1.10:8123"  // no trailing slash
+#define JUKEBOX_WEBHOOK_ID    "jukebox"           // same as in the integration
+#define JUKEBOX_BOX_ID        "kids-room"         // shown in the panel
+```
+
 ## Build, flash, watch
 
-PlatformIO lives at `~/.platformio/penv/bin/pio`.
+Plug the ESP32 in over USB, then from this `firmware/` folder:
 
 ```bash
-pio run -e esp32dev -t upload
-pio device monitor
+pio run -e esp32dev -t upload   # build and flash (the first build downloads the toolchain)
+pio device monitor              # watch the serial log at 115200 baud; Ctrl+C to quit
 ```
+
+In VS Code, open the `firmware/` folder and use the PlatformIO toolbar's Upload and
+Serial Monitor buttons instead.
+
+If the upload stops at `Connecting....___`, hold the board's **BOOT** button until
+writing starts. If no port is found, try another cable or install the USB driver.
+If `pio` is not on your PATH after installing, it is usually at
+`~/.platformio/penv/bin/pio`.
 
 Host tests for the pure modules:
 
