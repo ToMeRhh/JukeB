@@ -148,6 +148,11 @@ class JukeboxStore:
         self._default_player = default_player
         self._data: dict[str, Any] = {"settings": {}, "tags": {}}
         self._settings = Settings(default_player, DEFAULT_VOLUME, DEFAULT_ON_REMOVE, DEFAULT_GRACE_S)
+        self._listeners: list[Callable[[], None]] = []
+
+    def add_settings_listener(self, listener: Callable[[], None]) -> None:
+        """Call listener (on the event loop) after every settings write."""
+        self._listeners.append(listener)
 
     async def async_load(self) -> None:
         raw = await self._store.async_load()
@@ -183,6 +188,8 @@ class JukeboxStore:
             raise StoreError("settings must be an object")
         self._settings = _validate_settings(self._settings, partial)
         await self._async_save()
+        for listener in self._listeners:
+            listener()
         return self._settings
 
     # ----- tags -----

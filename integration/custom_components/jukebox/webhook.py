@@ -34,14 +34,14 @@ async def handle_webhook(hass: HomeAssistant, webhook_id: str, request: Request)
 
     now = dt_util.utcnow()
     if event == EVENT_HEARTBEAT:
-        data.box.touch(payload, now)
+        data.touch(payload, now)
         return web.json_response({"ok": True})
 
     try:
         uid = normalize_uid(payload.get("uid"))
     except StoreError:
         return _error("uid required")
-    data.box.touch(payload, now)
+    data.touch(payload, now)
     if event == EVENT_PRESENT:
         known = await data.controller.async_present(uid)
         return web.json_response({"ok": True, "known": known})
