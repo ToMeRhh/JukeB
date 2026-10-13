@@ -54,6 +54,17 @@ async def test_settings_validation(hass):
         await store.async_set_settings({"volume": "loud"})
 
 
+async def test_volume_can_be_disabled(hass):
+    store = await make_store(hass)
+    await store.async_set_settings({"volume": None})
+    assert store.settings.volume is None
+    assert store.settings.as_dict()["volume"] is None
+    reloaded = await make_store(hass)
+    assert reloaded.settings.volume is None
+    await reloaded.async_set_settings({"volume": 0.4})
+    assert reloaded.settings.volume == 0.4
+
+
 async def test_partial_settings_keep_others(hass):
     store = await make_store(hass)
     await store.async_set_settings({"volume": 0.5})

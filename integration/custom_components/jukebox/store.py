@@ -37,7 +37,7 @@ def normalize_uid(uid: Any) -> str:
 @dataclass(frozen=True)
 class Settings:
     player: str
-    volume: float
+    volume: float | None  # None: do not touch the speaker's volume before playing
     on_remove: str
     remove_grace_s: int
 
@@ -88,11 +88,13 @@ def _validate_settings(current: Settings, partial: dict[str, Any]) -> Settings:
     if not isinstance(player, str) or not player.startswith("media_player."):
         raise StoreError("player must be a media_player entity")
 
-    try:
-        volume = float(values["volume"])
-    except (TypeError, ValueError) as err:
-        raise StoreError("volume must be a number between 0 and 1") from err
-    volume = min(1.0, max(0.0, volume))
+    volume: float | None = None
+    if values["volume"] is not None:
+        try:
+            volume = float(values["volume"])
+        except (TypeError, ValueError) as err:
+            raise StoreError("volume must be a number between 0 and 1") from err
+        volume = min(1.0, max(0.0, volume))
 
     on_remove = values["on_remove"]
     if on_remove not in ON_REMOVE_CHOICES:

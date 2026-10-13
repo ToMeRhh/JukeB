@@ -137,7 +137,9 @@ class JukeboxController:
 
     async def _async_play_tag(self, uid: str, tag: Tag) -> None:
         settings = self._store.settings
-        ok = await self._async_call("volume_set", {"volume_level": settings.volume})
+        ok = True
+        if settings.volume is not None:
+            ok = await self._async_call("volume_set", {"volume_level": settings.volume})
         if ok:
             ok = await self._async_call(
                 "play_media",

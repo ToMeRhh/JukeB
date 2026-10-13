@@ -57,6 +57,15 @@ async def test_known_tag_plays_with_volume(hass, ctl, services):
     assert ctl.last_error is None
 
 
+async def test_disabled_volume_skips_volume_set(hass, ctl, services):
+    await ctl._store.async_set_settings({"volume": None})
+    assert await ctl.async_present("AA:01") is True
+    await hass.async_block_till_done()
+    assert services["volume_set"] == []
+    assert len(services["play_media"]) == 1
+    assert ctl.now_playing["uid"] == "AA:01"
+
+
 async def test_unknown_tag_only_records_last_scanned(hass, ctl, services):
     assert await ctl.async_present("ZZ:99") is False
     await hass.async_block_till_done()
