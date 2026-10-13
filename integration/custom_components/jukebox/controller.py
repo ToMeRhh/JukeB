@@ -160,7 +160,7 @@ class JukeboxController:
                 {"media_content_id": self._media.uri(path), "media_content_type": MEDIA_CONTENT_TYPE},
             )
         if ok:
-            self.now_playing = {"uid": uid, "name": name, "at": dt_util.utcnow().isoformat()}
+            self.now_playing = {"uid": uid, "name": name, "path": path, "at": dt_util.utcnow().isoformat()}
 
     async def _async_call(self, service: str, data: dict[str, Any]) -> bool:
         player = self._store.settings.player

@@ -12,23 +12,29 @@ panel in the Home Assistant sidebar.
 2. Restart Home Assistant.
 3. Settings → Devices & services → Add integration → **Jukebox**.
    - *Webhook ID*: must equal `JUKEBOX_WEBHOOK_ID` in the firmware's `config.h` (default `jukebox`).
-   - *Speaker*: the `media_player` entity to play on. You can change it later in the panel.
+   - *Speaker*: the `media_player` entity to play on. This is only the initial value;
+     from then on the speaker is changed in the panel's Settings tab, not here.
 4. Open **Jukebox** in the sidebar (admin users only).
 
 The integration is a single-instance service: it adds no devices or entities.
 
 ## Panel guide
 
-- **Status** — Online/Offline (offline after 90 s without an event), last seen,
-  RSSI, firmware version, what is playing, and the last playback error.
-- **Register an object** — shows the last scanned UID. Tap an object on the box,
-  press *Use this UID*, give it a name, pick a file, *Add tag*.
-- **Tags** — Play, Edit, Delete per tag.
-- **Media library** — drop MP3 files to upload (max 50 MB each). Files are stored
-  in `<media folder>/jukebox/` and play as `media-source://media_source/<media dir>/jukebox/<file>`.
-  Deleting a file that a tag uses is refused.
-- **Settings** — speaker, default volume, what happens when the object is
-  removed (keep playing / pause / stop) and the grace period that ignores brief lifts.
+The status bar at the top is always visible: Online/Offline (offline after 90 s
+without an event), last seen, RSSI, firmware version, what is playing or paused,
+and the last playback error. Below it are three tabs.
+
+- **Tags** — *Register an object* shows the last scanned UID. Tap an object on
+  the box, press *Use this UID*, give it a name, pick a file, *Add tag*. The
+  table lists every tag with Play, Edit and Delete.
+- **Media** — drop MP3 files to upload (max 50 MB each; any file name works,
+  including non-Latin scripts). Files are stored in `<media folder>/jukebox/` and
+  play as `media-source://media_source/<media dir>/jukebox/<file>`. Each file
+  has Play, which sends it to the speaker, and Pause while it is playing. Deleting
+  a file that a tag uses is refused.
+- **Settings** — speaker, an optional volume to set before each play (untick to
+  leave the speaker's volume alone), what happens when the object is removed
+  (keep playing / pause / stop) and the grace period that ignores brief lifts.
 
 ## Protocol
 

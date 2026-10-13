@@ -53,6 +53,7 @@ async def test_known_tag_plays_with_volume(hass, ctl, services):
     }
     assert ctl.current_uid == "AA:01"
     assert ctl.now_playing["uid"] == "AA:01" and ctl.now_playing["name"] == "Dino"
+    assert ctl.now_playing["path"] == "dino.mp3"
     assert ctl.last_scanned["uid"] == "AA:01" and ctl.last_scanned["known"] is True
     assert ctl.last_error is None
 
@@ -187,7 +188,7 @@ async def test_play_file_from_library(hass, ctl, services):
     await ctl.async_play_file("cat.mp3")
     assert services["volume_set"][0].data["volume_level"] == 0.3
     assert services["play_media"][0].data["media_content_id"] == "media-source://media_source/media/jukebox/cat.mp3"
-    assert ctl.now_playing == {"uid": None, "name": "cat.mp3", "at": ctl.now_playing["at"]}
+    assert ctl.now_playing == {"uid": None, "name": "cat.mp3", "path": "cat.mp3", "at": ctl.now_playing["at"]}
     assert ctl.current_uid is None  # library playback is not an object on the box
 
 

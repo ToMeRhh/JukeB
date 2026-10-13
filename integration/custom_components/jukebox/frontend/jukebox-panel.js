@@ -1,6 +1,8 @@
 /* Jukebox panel: vanilla web component, no build step, no external imports. */
 const UPLOAD_URL = "/api/jukebox/upload";
 const POLL_MS = 2000;
+const TABS = ["tags", "media", "settings"];
+const TAB_KEY = "jukebox-panel-tab";
 
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -47,6 +49,12 @@ const STYLE = `
   progress { width: 100%; height: 8px; }
   .radios label { display: inline-flex; align-items: center; gap: 4px; margin: 4px 16px 4px 0; color: var(--primary-text-color); font-size: 14px; }
   .radios input { width: auto; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--divider-color, #e0e0e0); margin-bottom: 16px; }
+  .tabs button { border: none; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 10px 16px; font-size: 15px; color: var(--secondary-text-color); margin-bottom: -1px; }
+  .tabs button[aria-selected=true] { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 500; }
+  section[hidden] { display: none; }
+  .check { display: inline-flex; align-items: center; gap: 6px; color: var(--primary-text-color); font-size: 14px; margin: 10px 0 4px; }
+  .check input { width: auto; }
 `;
 
 class JukeboxPanel extends HTMLElement {
@@ -61,7 +69,9 @@ class JukeboxPanel extends HTMLElement {
     this._settings = null;
     this._editing = null;
     this._lastScanUid = null;
+    this._lastScanAt = null;
     this._playerCount = -1;
+    this._renderedPlaying = null;
     this._rendered = false;
   }
 
@@ -162,6 +172,13 @@ class JukeboxPanel extends HTMLElement {
       <h1>Jukebox</h1>
       <div class="card"><div id="status" class="row">Loading…</div></div>
 
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="tags">Tags</button>
+        <button role="tab" data-tab="media">Media</button>
+        <button role="tab" data-tab="settings">Settings</button>
+      </div>
+
+      <section data-panel="tags">
       <div class="card">
         <h2>Register an object</h2>
         <div class="row">
@@ -189,21 +206,29 @@ class JukeboxPanel extends HTMLElement {
           <div id="tagMsg" class="msg"></div>
         </div>
       </div>
+      </section>
 
+      <section data-panel="media" hidden>
       <div class="card">
         <h2>Media library</h2>
         <div id="drop" class="drop">Drop MP3 files here or <button id="btnPick">choose files</button>
           <input id="filePick" type="file" accept=".mp3,audio/mpeg" multiple hidden></div>
         <div id="uploads"></div>
+        <div class="muted" style="margin-bottom:8px">Play sends the file to the speaker chosen in Settings.</div>
         <table><thead><tr><th>File</th><th>Size</th><th></th></tr></thead><tbody id="fileRows"></tbody></table>
         <div id="fileMsg" class="msg"></div>
       </div>
+      </section>
 
+      <section data-panel="settings" hidden>
       <div class="card">
         <h2>Settings</h2>
         <div class="grid">
           <div><label>Speaker</label><select id="sPlayer"></select></div>
-          <div><label>Default volume: <span id="sVolLabel"></span>%</label><input id="sVolume" type="range" min="0" max="100"></div>
+          <div>
+            <label class="check"><input id="sVolOn" type="checkbox"> Set volume before playing</label>
+            <label>Volume: <span id="sVolLabel"></span>%</label><input id="sVolume" type="range" min="0" max="100">
+          </div>
           <div><label>When the object is removed</label>
             <div class="radios">
               <label><input type="radio" name="onRemove" value="none"> Keep playing</label>
@@ -215,11 +240,14 @@ class JukeboxPanel extends HTMLElement {
         <div class="row" style="margin-top:12px"><button id="btnSaveSettings" class="primary">Save settings</button></div>
         <div id="settingsMsg" class="msg"></div>
       </div>
+      </section>
     `;
     this._bind();
+    this._showTab(this._savedTab());
   }
 
   _bind() {
+    this.shadowRoot.querySelectorAll(".tabs button").forEach((b) => { b.onclick = () => this._showTab(b.dataset.tab); });
     this.$("btnUse").onclick = () => {
       const uid = this._status?.last_scanned?.uid;
       if (!uid) return;
@@ -249,11 +277,31 @@ class JukeboxPanel extends HTMLElement {
     this.$("btnPick").onclick = () => this.$("filePick").click();
     this.$("filePick").onchange = (ev) => { this._uploadFiles(ev.target.files); ev.target.value = ""; };
     this.$("fileRows").onclick = (ev) => {
-      const btn = ev.target.closest("button[data-act=del]");
-      if (btn) this._deleteFile(btn.dataset.path);
+      const btn = ev.target.closest("button[data-act]");
+      if (!btn) return;
+      if (btn.dataset.act === "play") this._playFile(btn.dataset.path);
+      if (btn.dataset.act === "pause") this._pause();
+      if (btn.dataset.act === "del") this._deleteFile(btn.dataset.path);
     };
     this.$("sVolume").oninput = (ev) => { this.$("sVolLabel").textContent = ev.target.value; };
+    this.$("sVolOn").onchange = (ev) => { this.$("sVolume").disabled = !ev.target.checked; };
     this.$("btnSaveSettings").onclick = () => this._saveSettings();
+  }
+
+  // ---------- tabs ----------
+
+  _savedTab() {
+    try {
+      const t = localStorage.getItem(TAB_KEY);
+      if (TABS.includes(t)) return t;
+    } catch (_) { /* storage blocked: default tab */ }
+    return TABS[0];
+  }
+
+  _showTab(name) {
+    this.shadowRoot.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
+    this.shadowRoot.querySelectorAll("section[data-panel]").forEach((sec) => { sec.hidden = sec.dataset.panel !== name; });
+    try { localStorage.setItem(TAB_KEY, name); } catch (_) { /* ignore */ }
   }
 
   // ---------- status + scan ----------
@@ -267,12 +315,20 @@ class JukeboxPanel extends HTMLElement {
     if (s.rssi != null) parts.push(`<span class="muted">RSSI ${esc(s.rssi)} dBm</span>`);
     if (s.version) parts.push(`<span class="muted">firmware ${esc(s.version)}</span>`);
     if (s.box_id) parts.push(`<span class="muted">box ${esc(s.box_id)}</span>`);
-    parts.push(s.now_playing
-      ? `<span>Now playing: <b>${esc(s.now_playing.name)}</b></span>`
-      : `<span class="muted">Nothing playing</span>`);
+    if (s.now_playing) {
+      const verb = s.player_state === "paused" ? "Paused" : "Now playing";
+      parts.push(`<span>${verb}: <b>${esc(s.now_playing.name)}</b></span>`);
+    } else {
+      parts.push(`<span class="muted">Nothing playing</span>`);
+    }
     parts.push(`<span class="muted">webhook ${esc(s.webhook_id)} · integration ${esc(s.integration_version)}</span>`);
     if (s.last_error) parts.push(`<span class="bad" style="flex-basis:100%">Last error: ${esc(s.last_error)}</span>`);
     this.$("status").innerHTML = parts.join("");
+    if (this._playingPath() !== this._renderedPlaying) this._renderFiles();
+  }
+
+  _playingPath() {
+    return this._status?.player_state === "playing" ? this._status?.now_playing?.path ?? null : null;
   }
 
   _renderScan() {
@@ -382,10 +438,37 @@ class JukeboxPanel extends HTMLElement {
   // ---------- media ----------
 
   _renderFiles() {
+    const playingPath = this._playingPath();
+    this._renderedPlaying = playingPath;
     this.$("fileRows").innerHTML = this._files.length
-      ? this._files.map((f) => `<tr><td>${esc(f.path)}</td><td>${fmtSize(f.size)}</td>
-          <td class="actions"><button data-act="del" data-path="${esc(f.path)}" class="danger">Delete</button></td></tr>`).join("")
+      ? this._files.map((f) => {
+          const ctl = f.path === playingPath
+            ? `<button data-act="pause" data-path="${esc(f.path)}" class="primary">Pause</button>`
+            : `<button data-act="play" data-path="${esc(f.path)}">Play</button>`;
+          return `<tr><td>${esc(f.path)}</td><td>${fmtSize(f.size)}</td>
+            <td class="actions">${ctl} <button data-act="del" data-path="${esc(f.path)}" class="danger">Delete</button></td></tr>`;
+        }).join("")
       : `<tr><td colspan="3" class="muted">No files yet.</td></tr>`;
+  }
+
+  async _playFile(path) {
+    try {
+      await this._ws({ type: "jukebox/media/play", path });
+      this._say("fileMsg", `Playing ${path}`, true);
+      setTimeout(() => this._refreshStatus(), 500);
+    } catch (e) {
+      this._say("fileMsg", e.message || String(e), false);
+    }
+  }
+
+  async _pause() {
+    try {
+      await this._ws({ type: "jukebox/pause" });
+      this._say("fileMsg", "Paused", true);
+      setTimeout(() => this._refreshStatus(), 500);
+    } catch (e) {
+      this._say("fileMsg", e.message || String(e), false);
+    }
   }
 
   async _uploadFiles(fileList) {
@@ -460,8 +543,12 @@ class JukeboxPanel extends HTMLElement {
     this._playerCount = -1;
     this._renderPlayers();
     this.$("sPlayer").value = s.player;
-    this.$("sVolume").value = Math.round(s.volume * 100);
-    this.$("sVolLabel").textContent = Math.round(s.volume * 100);
+    const volOn = s.volume != null;
+    const vol = Math.round((volOn ? s.volume : 0.3) * 100);
+    this.$("sVolOn").checked = volOn;
+    this.$("sVolume").disabled = !volOn;
+    this.$("sVolume").value = vol;
+    this.$("sVolLabel").textContent = vol;
     const radio = this.shadowRoot.querySelector(`input[name=onRemove][value=${s.on_remove}]`);
     if (radio) radio.checked = true;
     this.$("sGrace").value = s.remove_grace_s;
@@ -472,7 +559,7 @@ class JukeboxPanel extends HTMLElement {
     const grace = this.$("sGrace").value === "" ? this._settings.remove_grace_s : Number(this.$("sGrace").value);
     const settings = {
       player: this.$("sPlayer").value,
-      volume: Number(this.$("sVolume").value) / 100,
+      volume: this.$("sVolOn").checked ? Number(this.$("sVolume").value) / 100 : null,
       on_remove: onRemove,
       remove_grace_s: grace,
     };
