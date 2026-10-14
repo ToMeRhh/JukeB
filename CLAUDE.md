@@ -7,16 +7,16 @@ Guidance for AI-assisted work in this repository.
 Turn RFID tags into play buttons for Home Assistant. The repo ships the integration, the
 firmware and a reference wiring; users build the physical device however they like (a kids'
 music box is one example, not the premise). An ESP32 + RC522 reader POSTs `present` / `absent` /
-`heartbeat` events to a Home Assistant webhook. The `jukebox` custom integration
+`heartbeat` events to a Home Assistant webhook. The `jukeb` custom integration
 owns everything else: tag registry, MP3 library, playback on a `media_player`,
-removal behaviour, enabled toggle and active hours, the Jukebox sidebar panel, and
-a Jukebox device with an online binary sensor and an enabled switch. The firmware
+removal behaviour, enabled toggle and active hours, the JukeB sidebar panel, and
+a JukeB device with an online binary sensor and an enabled switch. The firmware
 has no UI and no state.
 
 ## Layout
 
-- `custom_components/jukebox/` the integration, at the repo root because HACS requires it
-  (`hacs.json` beside it). `frontend/jukebox-panel.js` is the panel (vanilla JS, no build step).
+- `custom_components/jukeb/` the integration, at the repo root because HACS requires it
+  (`hacs.json` beside it). `frontend/jukeb-panel.js` is the panel (vanilla JS, no build step).
   `brand/` holds the icon PNGs HA 2026.3+ and HACS show, rendered from `docs/images/icon.svg`
   by `tools/render_icon.py`; never edit the PNGs by hand.
   `home-assistant/` holds its README and the pytest suite (`pytest.ini` puts the repo root on the path).
@@ -35,7 +35,7 @@ Integration (Python 3.14, run from `home-assistant/`):
 - `uv venv --python 3.14 .venv && uv pip install --python .venv/bin/python -r requirements_test.txt`
 - `.venv/bin/python -m pytest -q` runs the suite against a real in-process HA core.
   `requirements_test.txt` pins the core to the minimum `homeassistant` in `hacs.json`; move both together.
-- `node --check ../custom_components/jukebox/frontend/jukebox-panel.js` syntax-checks the panel.
+- `node --check ../custom_components/jukeb/frontend/jukeb-panel.js` syntax-checks the panel.
 
 Firmware (run from `firmware/`, PlatformIO at `~/.platformio/penv/bin/pio`):
 - `pio test -e native` host tests for the pure modules.
@@ -61,14 +61,16 @@ version) and creates the GitHub release with generated notes; add a human summar
 - Websocket commands and the upload view are admin only. Global registrations
   (websocket, view, static path) happen once per HA run behind `DATA_SETUP_DONE`;
   the webhook, panel and entity platforms are registered per entry and removed on unload.
-- Entities (`binary_sensor.py`, `switch.py`, base in `entity.py`) never poll: `JukeboxData.touch`
+- Entities (`binary_sensor.py`, `switch.py`, base in `entity.py`) never poll: `JukeBData.touch`
   (box events, offline timer) and the store's settings listener send `SIGNAL_UPDATE` and the
-  entities write state. New entities subclass `JukeboxEntity` and read from `JukeboxData`, set
+  entities write state. New entities subclass `JukeBEntity` and read from `JukeBData`, set
   `_attr_translation_key` (name in `strings.json`, icon in `icons.json`) and never `_attr_name`.
   `translations/en.json` is a copy of `strings.json`; a test keeps them identical.
+- Branding: the product is **JukeB** everywhere, in user-facing text (`JukeB`) and in
+  identifiers (`jukeb` domain, URLs, websocket types, storage, `JUKEB_*` firmware macros).
 - "Inactive" (enabled off or outside active hours) only suppresses playback for new objects;
   scans are still recorded and removal behaviour is unchanged. Decided 2026-10-13.
-- Any change to `frontend/jukebox-panel.js` bumps `VERSION` in `const.py` and
+- Any change to `frontend/jukeb-panel.js` bumps `VERSION` in `const.py` and
   `manifest.json` together: the `?v=` query on the module URL is the only thing that
   makes browsers refetch the panel. `test_panel.py` pins both.
 - Storage shape is fixed in `store.py` (`version 1`). Adding a media type means a

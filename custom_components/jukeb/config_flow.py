@@ -27,7 +27,7 @@ def _schema(defaults: dict[str, Any]) -> vol.Schema:
     )
 
 
-class JukeboxConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class JukeBConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle the one-step user flow."""
 
     VERSION = 1
@@ -40,7 +40,7 @@ class JukeboxConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors[CONF_WEBHOOK_ID] = "invalid_webhook_id"
             else:
                 return self.async_create_entry(
-                    title="Jukebox",
+                    title="JukeB",
                     data={CONF_WEBHOOK_ID: webhook_id, CONF_PLAYER: user_input[CONF_PLAYER]},
                 )
         return self.async_show_form(

@@ -1,7 +1,7 @@
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.jukebox.const import CONF_PLAYER, CONF_WEBHOOK_ID, DOMAIN
+from custom_components.jukeb.const import CONF_PLAYER, CONF_WEBHOOK_ID, DOMAIN
 
 
 async def test_user_flow_creates_entry(hass):
@@ -13,12 +13,12 @@ async def test_user_flow_creates_entry(hass):
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {CONF_WEBHOOK_ID: "jukebox", CONF_PLAYER: "media_player.kitchen"},
+        {CONF_WEBHOOK_ID: "jukeb", CONF_PLAYER: "media_player.kitchen"},
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Jukebox"
+    assert result["title"] == "JukeB"
     assert result["data"] == {
-        CONF_WEBHOOK_ID: "jukebox",
+        CONF_WEBHOOK_ID: "jukeb",
         CONF_PLAYER: "media_player.kitchen",
     }
 
@@ -41,7 +41,7 @@ async def test_second_instance_aborts(hass, hass_media_dir):
     )
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {CONF_WEBHOOK_ID: "jukebox", CONF_PLAYER: "media_player.kitchen"},
+        {CONF_WEBHOOK_ID: "jukeb", CONF_PLAYER: "media_player.kitchen"},
     )
     assert result["type"] == FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()

@@ -11,14 +11,14 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .data import get_data
-from .entity import JukeboxEntity
+from .entity import JukeBEntity
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    async_add_entities([JukeboxOnlineSensor(get_data(hass))])
+    async_add_entities([JukeBOnlineSensor(get_data(hass))])
 
 
-class JukeboxOnlineSensor(JukeboxEntity, BinarySensorEntity):
+class JukeBOnlineSensor(JukeBEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_translation_key = "online"
 

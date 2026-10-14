@@ -10,14 +10,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .data import get_data
-from .entity import JukeboxEntity
+from .entity import JukeBEntity
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    async_add_entities([JukeboxEnabledSwitch(get_data(hass))])
+    async_add_entities([JukeBEnabledSwitch(get_data(hass))])
 
 
-class JukeboxEnabledSwitch(JukeboxEntity, SwitchEntity):
+class JukeBEnabledSwitch(JukeBEntity, SwitchEntity):
     _attr_translation_key = "enabled"
 
     def __init__(self, data) -> None:

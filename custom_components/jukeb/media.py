@@ -1,4 +1,4 @@
-"""MP3 files under <media dir>/jukebox/."""
+"""MP3 files under <media dir>/jukeb/."""
 
 from __future__ import annotations
 

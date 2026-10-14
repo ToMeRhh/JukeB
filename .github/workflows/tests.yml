@@ -26,7 +26,7 @@ jobs:
       - run: uv venv --python 3.14 .venv
       - run: uv pip install --python .venv/bin/python -r requirements_test.txt
       - run: .venv/bin/python -m pytest -q
-      - run: node --check ../custom_components/jukebox/frontend/jukebox-panel.js
+      - run: node --check ../custom_components/jukeb/frontend/jukeb-panel.js
 
   firmware:
     name: Firmware (native)

@@ -17,7 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import MEDIA_CONTENT_TYPE, OFFLINE_AFTER_S, ON_REMOVE_NONE, ON_REMOVE_PAUSE
 from .media import MediaLibrary
-from .store import JukeboxStore, StoreError, Tag
+from .store import JukeBStore, StoreError, Tag
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,10 +57,10 @@ class BoxStatus:
         }
 
 
-class JukeboxController:
+class JukeBController:
     """Decides what to play from present/absent events."""
 
-    def __init__(self, hass: HomeAssistant, store: JukeboxStore, media: MediaLibrary) -> None:
+    def __init__(self, hass: HomeAssistant, store: JukeBStore, media: MediaLibrary) -> None:
         self._hass = hass
         self._store = store
         self._media = media
@@ -78,7 +78,7 @@ class JukeboxController:
         if tag is None:
             return False
         if not self.is_active():
-            return True  # known, but the jukebox is off or outside its hours: nothing plays
+            return True  # known, but JukeB is off or outside its hours: nothing plays
         if self.current_uid == uid and self._grace_cancel is not None:
             self._cancel_grace()
             return True  # back within the grace window: keep playing
@@ -186,7 +186,7 @@ class JukeboxController:
         if state is None or state.state == STATE_UNAVAILABLE:
             # The entity service helper silently skips missing/unavailable entities.
             self.last_error = f"{player} is not available"
-            _LOGGER.warning("Jukebox: %s", self.last_error)
+            _LOGGER.warning("JukeB: %s", self.last_error)
             return False
         try:
             await self._hass.services.async_call(
@@ -194,7 +194,7 @@ class JukeboxController:
             )
         except (HomeAssistantError, vol.Invalid) as err:
             self.last_error = f"{service} on {player} failed: {err}"
-            _LOGGER.warning("Jukebox: %s", self.last_error)
+            _LOGGER.warning("JukeB: %s", self.last_error)
             return False
         self.last_error = None
         return True

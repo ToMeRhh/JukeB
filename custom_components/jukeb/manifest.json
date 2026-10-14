@@ -1,6 +1,6 @@
 {
-  "domain": "jukebox",
-  "name": "Jukebox",
+  "domain": "jukeb",
+  "name": "JukeB",
   "codeowners": ["@ToMeRhh"],
   "config_flow": true,
   "dependencies": ["http", "webhook", "websocket_api", "frontend", "panel_custom", "media_source"],
@@ -10,5 +10,5 @@
   "issue_tracker": "https://github.com/ToMeRhh/JukeB/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "2.2.1"
+  "version": "3.0.0"
 }

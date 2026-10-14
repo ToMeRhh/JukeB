@@ -32,7 +32,7 @@ void test_generic_200_without_json_is_not_ok() {
   // Home Assistant answers an empty 200 when no integration owns the webhook.
   const ReplyParser::Reply r = ReplyParser::parse(200, "");
   TEST_ASSERT_FALSE(r.ok);
-  TEST_ASSERT_EQUAL_STRING("HTTP 200 but no Jukebox reply (is the integration installed and the webhook id right?)", r.message.c_str());
+  TEST_ASSERT_EQUAL_STRING("HTTP 200 but no JukeB reply (is the integration installed and the webhook id right?)", r.message.c_str());
 }
 
 void test_400_with_error() {

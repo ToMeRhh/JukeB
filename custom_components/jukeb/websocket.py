@@ -1,4 +1,4 @@
-"""Websocket API used by the Jukebox panel. All commands are admin only."""
+"""Websocket API used by the JukeB panel. All commands are admin only."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def _send_invalid(connection: websocket_api.ActiveConnection, msg_id: int, err: 
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "jukebox/status"})
+@websocket_api.websocket_command({vol.Required("type"): "jukeb/status"})
 @callback
 def ws_status(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     data = get_data(hass)
@@ -35,7 +35,7 @@ def ws_status(hass: HomeAssistant, connection: websocket_api.ActiveConnection, m
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "jukebox/tags/list"})
+@websocket_api.websocket_command({vol.Required("type"): "jukeb/tags/list"})
 @callback
 def ws_tags_list(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     tags = get_data(hass).store.tags
@@ -45,7 +45,7 @@ def ws_tags_list(hass: HomeAssistant, connection: websocket_api.ActiveConnection
 @websocket_api.require_admin
 @websocket_api.websocket_command(
     {
-        vol.Required("type"): "jukebox/tags/set",
+        vol.Required("type"): "jukeb/tags/set",
         vol.Required("uid"): str,
         vol.Required("name"): str,
         vol.Required("media"): dict,
@@ -63,7 +63,7 @@ async def ws_tags_set(hass: HomeAssistant, connection: websocket_api.ActiveConne
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "jukebox/tags/delete", vol.Required("uid"): str})
+@websocket_api.websocket_command({vol.Required("type"): "jukeb/tags/delete", vol.Required("uid"): str})
 @websocket_api.async_response
 async def ws_tags_delete(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     try:
@@ -75,7 +75,7 @@ async def ws_tags_delete(hass: HomeAssistant, connection: websocket_api.ActiveCo
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "jukebox/play", vol.Required("uid"): str})
+@websocket_api.websocket_command({vol.Required("type"): "jukeb/play", vol.Required("uid"): str})
 @websocket_api.async_response
 async def ws_play(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     data = get_data(hass)
@@ -88,14 +88,14 @@ async def ws_play(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "jukebox/settings/get"})
+@websocket_api.websocket_command({vol.Required("type"): "jukeb/settings/get"})
 @callback
 def ws_settings_get(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     connection.send_result(msg["id"], {"settings": get_data(hass).store.settings.as_dict()})
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "jukebox/settings/set", vol.Required("settings"): dict})
+@websocket_api.websocket_command({vol.Required("type"): "jukeb/settings/set", vol.Required("settings"): dict})
 @websocket_api.async_response
 async def ws_settings_set(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     try:
@@ -107,7 +107,7 @@ async def ws_settings_set(hass: HomeAssistant, connection: websocket_api.ActiveC
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "jukebox/media/list"})
+@websocket_api.websocket_command({vol.Required("type"): "jukeb/media/list"})
 @websocket_api.async_response
 async def ws_media_list(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     media = get_data(hass).media
@@ -116,7 +116,7 @@ async def ws_media_list(hass: HomeAssistant, connection: websocket_api.ActiveCon
 
 
 @websocket_api.require_admin
-@websocket_api.websocket_command({vol.Required("type"): "jukebox/media/delete", vol.Required("path"): str})
+@websocket_api.websocket_command({vol.Required("type"): "jukeb/media/delete", vol.Required("path"): str})
 @websocket_api.async_response
 async def ws_media_delete(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
     data = get_data(hass)

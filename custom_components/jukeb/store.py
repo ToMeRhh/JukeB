@@ -1,4 +1,4 @@
-"""Persistent settings and tag registry (.storage/jukebox)."""
+"""Persistent settings and tag registry (.storage/jukeb)."""
 
 from __future__ import annotations
 
@@ -140,7 +140,7 @@ def _validate_settings(current: Settings, partial: dict[str, Any]) -> Settings:
     return Settings(player, volume, on_remove, grace, enabled, active_from, active_until)
 
 
-class JukeboxStore:
+class JukeBStore:
     """Owns the storage document and validates every write."""
 
     def __init__(self, hass: HomeAssistant, default_player: str) -> None:
