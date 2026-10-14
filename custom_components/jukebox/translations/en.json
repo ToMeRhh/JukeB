@@ -16,5 +16,17 @@
     "abort": {
       "single_instance_allowed": "Only one Jukebox can be configured"
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "online": {
+        "name": "Online"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Enabled"
+      }
+    }
   }
 }

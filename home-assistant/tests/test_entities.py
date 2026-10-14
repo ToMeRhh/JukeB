@@ -1,4 +1,8 @@
+import json
+from pathlib import Path
+
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
@@ -25,6 +29,25 @@ async def test_entities_and_device_created(hass, setup_jukebox):
     device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, setup_jukebox.entry_id)})
     assert device is not None and device.name == "Jukebox"
     assert device.sw_version is None
+
+
+async def test_entities_use_translation_keys(hass, setup_jukebox):
+    # Names come from translations/en.json and the switch icon from icons.json, both by key.
+    registry = er.async_get(hass)
+    assert registry.async_get(ONLINE).translation_key == "online"
+    assert registry.async_get(ENABLED).translation_key == "enabled"
+
+
+def test_icons_match_translations():
+    integration = Path(__file__).resolve().parents[2] / "custom_components" / "jukebox"
+    icons = json.loads((integration / "icons.json").read_text())["entity"]
+    strings = json.loads((integration / "strings.json").read_text())["entity"]
+    assert icons == {"switch": {"enabled": {"default": "mdi:music-note", "state": {"off": "mdi:music-note-off"}}}}
+    for platform, keys in icons.items():
+        assert set(keys) <= set(strings[platform])
+    assert json.loads((integration / "translations" / "en.json").read_text()) == json.loads(
+        (integration / "strings.json").read_text()
+    )
 
 
 async def test_online_follows_events_and_times_out(hass, setup_jukebox, hass_client_no_auth, freezer):

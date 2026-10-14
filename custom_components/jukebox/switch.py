@@ -18,7 +18,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 class JukeboxEnabledSwitch(JukeboxEntity, SwitchEntity):
-    _attr_name = "Enabled"
+    _attr_translation_key = "enabled"
 
     def __init__(self, data) -> None:
         super().__init__(data, "enabled")

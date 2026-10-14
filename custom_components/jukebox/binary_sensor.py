@@ -20,7 +20,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 class JukeboxOnlineSensor(JukeboxEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
-    _attr_name = "Online"
+    _attr_translation_key = "online"
 
     def __init__(self, data) -> None:
         super().__init__(data, "online")
