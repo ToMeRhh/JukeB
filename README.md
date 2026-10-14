@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="JukeB: put a toy on the box and its song plays. A tap-to-play RFID music box for kids, powered by Home Assistant." width="100%">
+  <img src="docs/images/banner.svg" alt="JukeB: tap a tag and Home Assistant plays it. RFID reader firmware and a Home Assistant integration; you decide what the device looks like." width="100%">
 </p>
 
 <p align="center">
@@ -11,35 +11,52 @@
 
 # JukeB
 
-**A Home Assistant integration and a tiny ESP32 box that turn toys into a music player for kids.**
+**Turn any RFID tag into a play button for Home Assistant.**
 
-Stick a cheap RFID tag on a toy. Put the toy on the box and its song plays on any speaker
-Home Assistant controls. Lift it off and the music pauses.
+Put a tagged object on the reader and Home Assistant plays the track you picked for it, on any
+speaker it controls. Take the object away and the music pauses.
 
-- 🧸 **Made for small hands.** No screen, no buttons, no app. Toys are the remote.
-- 🏠 **Runs in Home Assistant.** Install with HACS. Tags, songs and settings all live in a **Jukebox** page in the sidebar.
-- 🔊 **Plays on the speakers you already have.** Google Nest, Cast, Sonos: anything that shows up in Home Assistant as a `media_player` and can play MP3s.
-- 🌙 **Parent controls.** Set the volume, choose what lifting a toy does, set quiet hours, or switch the box off.
-- 🔒 **Local only.** No cloud, no account. The box only talks to Home Assistant on your network.
-- 🔧 **Cheap, common parts.** An ESP32, an RC522 reader and seven jumper wires.
+JukeB gives you everything except the box:
 
-<!-- 📷 the finished box on a shelf with a few tagged toys next to it. Save as `docs/images/hero.jpg` and replace this note with `![JukeB](docs/images/hero.jpg)`. -->
+| | |
+|---|---|
+| 🏠 **Home Assistant integration** | Installs with HACS. Assign tags to MP3s, pick the speaker, set the rules, all from a **Jukebox** page in the sidebar. |
+| 📟 **Firmware** | For an ESP32. It reports which tag is on the reader and nothing else, so you never need to re-flash it to change what plays. |
+| 🔌 **Reference hardware** | An ESP32 dev board, an RC522 reader and seven jumper wires, with a [wiring diagram](#2-wire-the-reader). |
+| 📦 **The device** | **Up to you.** A wooden box, a shelf, a picture frame, a 3D-printed case, the inside of a toy. |
+
+## Ideas
+
+| | | |
+|---|---|---|
+| ![A music box for kids: a toy duck sits on a wooden box](docs/images/example-music-box.svg) | ![Album cards: a card with cover art sits on a slim wooden reader](docs/images/example-album-cards.svg) | ![Photo messages: a picture frame on a shelf plays a voice message](docs/images/example-photo-messages.svg) |
+| **A music box for kids.** Tags in toys; put one on the box and its song plays. No screen, no buttons. | **Album cards.** Print cover art on tag cards and keep them in a crate like records. | **Voice messages.** Put a tag behind a family photo; placing it plays a message recorded by the people in it. |
+
+Each tag plays one MP3 from the library you upload to Home Assistant.
+
+Built something with JukeB? Share a photo in an issue.
+
+<!-- 📷 a real build. Save as `docs/images/build-*.jpg` and add it to the table above. -->
 
 ## How it works
 
 ```
-  toy with an RFID tag
+  anything with an RFID tag
           │
           ▼
  ┌─────────────────┐   "tag 04:A3:7F:12 placed"   ┌──────────────────────────┐   play    ┌─────────┐
- │ JukeB box       │ ───────── Wi-Fi ───────────▶ │ Home Assistant           │ ────────▶ │ speaker │
+ │ your device     │ ───────── Wi-Fi ───────────▶ │ Home Assistant           │ ────────▶ │ speaker │
  │ ESP32 + RC522   │ ◀────── "known tag" ──────── │ Jukebox integration      │           └─────────┘
  └─────────────────┘                              └──────────────────────────┘
 ```
 
-The box only reports what it sees: a tag was placed, a tag was removed, and "I'm still here" every
-30 seconds. Home Assistant does everything else: it knows which song goes with which tag, stores the
-MP3s, and plays them. You never need to re-flash the box to add a song or change how it behaves.
+The device only reports what it sees: a tag was placed, a tag was removed, and "I'm still here"
+every 30 seconds. Home Assistant does everything else: which track goes with which tag, where it
+plays, how loud, and what happens when the tag is removed.
+
+- 🔊 **Your speakers.** Google Nest, Cast, Sonos: any `media_player` in Home Assistant that can play MP3s.
+- 🎛️ **Your rules.** Fixed volume, pause / stop / keep playing on removal, active hours, an on/off switch.
+- 🔒 **Local.** No cloud, no account. The device talks only to Home Assistant on your network.
 
 <!-- 📷 the Jukebox panel in Home Assistant (Tags tab, a few tags listed). Save as `docs/images/panel.png`. -->
 
@@ -51,10 +68,10 @@ MP3s, and plays them. You never need to re-flash the box to add a song or change
 | 🔊 | A speaker in Home Assistant | Any `media_player` that plays MP3s, e.g. a Google Nest Mini |
 | 🧠 | ESP32 DevKit V1 (30-pin, ESP32-WROOM-32) | Other ESP32-WROOM boards work too. Not WROVER: it uses GPIO 16/17. |
 | 📡 | RC522 RFID reader (13.56 MHz) | The common blue board. Some ship with loose header pins you'll need to solder on. |
-| 🏷️ | 13.56 MHz RFID tags (MIFARE Classic or NTAG) | Stickers, coins or cards: one per toy |
+| 🏷️ | 13.56 MHz RFID tags (MIFARE Classic or NTAG) | Stickers, coins or cards |
 | 🔌 | 7 female-to-female jumper wires | |
 | 🔋 | Micro-USB **data** cable and a 5 V USB charger | Some cables only charge and can't flash the board |
-| 📦 | Any box to put it in | Plastic or wood, not metal. See [step 5](#5-put-it-in-a-box). |
+| 📦 | Something to build it into | Plastic, wood or cardboard; not metal. See [step 5](#5-build-your-device). |
 
 ## Setup
 
@@ -82,13 +99,13 @@ your Home Assistant `config/custom_components/` folder and restart Home Assistan
 
 Or go to **Settings → Devices & services → Add integration** and pick **Jukebox**. It asks for two things:
 
-- **Webhook ID**: the address the box sends to. Keep the default `jukebox` unless you have a reason
-  to change it. You'll need it again in step 3.
+- **Webhook ID**: the address the device sends to. Keep the default `jukebox` unless you have a
+  reason to change it. You'll need it again in step 3.
 - **Speaker**: where the music plays. You can change it later.
 
-A **Jukebox** page now appears in the sidebar. It shows *Offline* until the box is running.
+A **Jukebox** page now appears in the sidebar. It shows *Offline* until the device is running.
 
-### 2. Wire the box
+### 2. Wire the reader
 
 Seven wires connect the reader to the ESP32. The reader's eight pins line up with the bottom eight
 pins of one side of the ESP32, in the same order, so the wires run straight across. Only GND and RST
@@ -110,9 +127,9 @@ swap at the end.
 > [!WARNING]
 > Power the RC522 from **3.3 V**, never 5 V. Pin labels differ between boards, so go by the GPIO number.
 
-Wire it on the desk first. It's much easier to test before it goes into a box.
+Wire it on the desk first. It's much easier to test before it goes into anything.
 
-<!-- 📷 the ESP32 and RC522 wired together on the desk before going into the case. Save as `docs/images/wired.jpg`. -->
+<!-- 📷 the ESP32 and RC522 wired together on the desk. Save as `docs/images/wired.jpg`. -->
 
 ### 3. Flash the firmware
 
@@ -132,42 +149,39 @@ Within a few seconds the Jukebox page in Home Assistant switches to **Online**.
 If it doesn't, see [firmware/README.md](firmware/README.md#serial-checklist) for the serial log
 checklist and what the LED blinks mean.
 
-### 4. Add songs and tags
+### 4. Add tracks and tags
 
 In the **Jukebox** page:
 
 1. **Media** tab: drag in your MP3 files.
-2. Put a tagged toy on the box. The box blinks three times ("I don't know this one") and the
+2. Put a tag on the reader. The ESP32's LED blinks three times ("I don't know this one") and the
    **Tags** tab shows the tag under *Last scanned*.
-3. Click **Use this UID**, name the toy, pick a song and click **Add tag**.
-4. Lift the toy and put it back. The box blinks once and the song plays. 🎉
+3. Click **Use this UID**, give it a name, pick a track and click **Add tag**.
+4. Take the tag away and put it back. The LED blinks once and the track plays. 🎉
 
-Repeat for every toy.
+### 5. Build your device
 
-### 5. Put it in a box
+This part is yours. Whatever you build, a few things make the reader work well:
 
-There's no official case: use any box you like, bought, built or 3D-printed.
-
-- The reader works through a few millimetres of plastic or wood, but not metal. Put the spot where
-  the toy sits right above the reader, no more than about 5 mm away.
-- Keep spare tags at least 3 cm from the reader, or it will read them instead.
-- Leave a hole for the USB cable.
-
-<!-- 📷 a child placing a toy on the box. Save as `docs/images/in-use.jpg`. -->
+- The reader works through a few millimetres of plastic, wood or cardboard, but not metal. Put the
+  spot where tags go right above the reader, no more than about 5 mm away.
+- Keep tags that aren't in use at least 3 cm from the reader, or it will read them instead.
+- Leave a way in for the USB cable, and room for the reader's header pins and the jumper wires.
+- If you want to see the LED blinks, leave a window or a thin spot over the ESP32.
 
 ## Settings and automations
 
 The **Settings** tab of the Jukebox page lets you:
 
 - change the speaker and set a fixed volume,
-- choose what happens when a toy is lifted: keep playing, pause or stop,
-- set active hours, for example no music after bedtime.
+- choose what happens when a tag is removed: keep playing, pause or stop,
+- set active hours, for example no music late at night.
 
-The **Enabled** switch at the top turns the box off for a while.
+The **Enabled** switch at the top turns playback off for a while.
 
 Home Assistant also gets a **Jukebox** device for your automations and dashboards:
 
-- `binary_sensor.jukebox_online`: whether the box is connected,
+- `binary_sensor.jukebox_online`: whether the device is connected,
 - `switch.jukebox_enabled`: the same on/off switch as in the Jukebox page.
 
 More detail, troubleshooting and the update and uninstall steps are in
@@ -180,13 +194,13 @@ More detail, troubleshooting and the update and uninstall steps are in
 | [`custom_components/jukebox/`](custom_components/jukebox) | The Home Assistant integration and its sidebar page (this is what HACS installs) |
 | [`home-assistant/`](home-assistant/) | Integration docs and tests |
 | [`firmware/`](firmware/) | ESP32 firmware (PlatformIO, Arduino) and its tests |
-| [`docs/`](docs/) | Banner, wiring diagram and photos |
+| [`docs/`](docs/) | Banner, wiring diagram, example drawings and photos |
 
 ## Development
 
 - Integration tests: see [home-assistant/README.md](home-assistant/README.md#development).
 - Firmware tests: `cd firmware && pio test -e native`.
-- The box and Home Assistant talk over a single JSON webhook, documented in
+- The device and Home Assistant talk over a single JSON webhook, documented in
   [home-assistant/README.md](home-assistant/README.md#protocol). Changes to what plays and when
   always go in the integration, never in the firmware.
 

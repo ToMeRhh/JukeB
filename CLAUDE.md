@@ -4,7 +4,9 @@ Guidance for AI-assisted work in this repository.
 
 ## What this is
 
-A kids' RFID music box. An ESP32 + RC522 reader POSTs `present` / `absent` /
+Turn RFID tags into play buttons for Home Assistant. The repo ships the integration, the
+firmware and a reference wiring; users build the physical device however they like (a kids'
+music box is one example, not the premise). An ESP32 + RC522 reader POSTs `present` / `absent` /
 `heartbeat` events to a Home Assistant webhook. The `jukebox` custom integration
 owns everything else: tag registry, MP3 library, playback on a `media_player`,
 removal behaviour, enabled toggle and active hours, the Jukebox sidebar panel, and
@@ -18,7 +20,7 @@ has no UI and no state.
   `home-assistant/` holds its README and the pytest suite (`pytest.ini` puts the repo root on the path).
 - `firmware/` PlatformIO project. `src/` firmware, `include/config.example.h` the
   build-time config template (`include/config.h` is git-ignored), `test/` host tests.
-- `docs/images/` pictures for the top-level README (`wiring.svg`; photo placeholders listed in its README).
+- `docs/images/` pictures for the top-level README (banner, `wiring.svg`, example drawings; photo placeholders listed in its README).
 
 Every top-level folder has a README written for someone building the box; keep
 them in sync with the code. Keep new top-level concerns in their own folder (e.g. `tools/`).

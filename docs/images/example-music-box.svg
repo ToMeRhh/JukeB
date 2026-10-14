@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 280" width="420" height="280" font-family="'Trebuchet MS', 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb648"/><stop offset="1" stop-color="#f08a24"/></linearGradient>
+    <linearGradient id="woodTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#ffbd55"/></linearGradient>
+  </defs>
+  <rect width="420" height="280" rx="18" fill="#2b1b5a"/>
+  <ellipse cx="190" cy="250" rx="140" ry="12" fill="#000" opacity="0.3"/>
+  <path d="M70 160 h240 v74 a14 14 0 0 1 -14 14 h-212 a14 14 0 0 1 -14 -14 z" fill="url(#wood)"/>
+  <path d="M70 160 l30 -30 h180 l30 30 z" fill="url(#woodTop)"/>
+  <ellipse cx="190" cy="146" rx="60" ry="10" fill="#ffffff" opacity="0.55"/>
+  <circle cx="284" cy="190" r="7" fill="#5cf29a"/>
+  <g transform="translate(150 54)">
+    <ellipse cx="42" cy="82" rx="48" ry="24" fill="#ffe14d"/>
+    <circle cx="56" cy="40" r="28" fill="#ffe14d"/>
+    <path d="M80 38 l24 8 l-24 8 z" fill="#ff8a2a"/>
+    <circle cx="64" cy="32" r="5" fill="#2b1b5a"/>
+    <circle cx="66" cy="30" r="1.6" fill="#fff"/>
+    <path d="M12 78 q20 -18 42 0" fill="none" stroke="#f2c418" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <!-- more toys waiting -->
+  <g transform="translate(330 190)">
+    <rect x="0" y="0" width="44" height="44" rx="8" fill="#ff6b8b"/>
+    <text x="22" y="32" text-anchor="middle" font-size="26" font-weight="bold" fill="#fff">A</text>
+  </g>
+  <circle cx="30" cy="222" r="22" fill="#5cc8ff"/>
+  <g fill="#ffffff" transform="translate(320 50) rotate(10)">
+    <ellipse cx="0" cy="40" rx="12" ry="9"/><rect x="8" y="0" width="5" height="40"/><path d="M13 0 q18 6 14 24 q-4 -12 -14 -12 z"/>
+  </g>
+</svg>
