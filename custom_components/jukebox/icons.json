@@ -1,0 +1,12 @@
+{
+  "entity": {
+    "switch": {
+      "enabled": {
+        "default": "mdi:music-note",
+        "state": {
+          "off": "mdi:music-note-off"
+        }
+      }
+    }
+  }
+}

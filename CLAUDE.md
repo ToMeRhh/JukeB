@@ -63,7 +63,9 @@ version) and creates the GitHub release with generated notes; add a human summar
   the webhook, panel and entity platforms are registered per entry and removed on unload.
 - Entities (`binary_sensor.py`, `switch.py`, base in `entity.py`) never poll: `JukeboxData.touch`
   (box events, offline timer) and the store's settings listener send `SIGNAL_UPDATE` and the
-  entities write state. New entities subclass `JukeboxEntity` and read from `JukeboxData`.
+  entities write state. New entities subclass `JukeboxEntity` and read from `JukeboxData`, set
+  `_attr_translation_key` (name in `strings.json`, icon in `icons.json`) and never `_attr_name`.
+  `translations/en.json` is a copy of `strings.json`; a test keeps them identical.
 - "Inactive" (enabled off or outside active hours) only suppresses playback for new objects;
   scans are still recorded and removal behaviour is unchanged. Decided 2026-10-13.
 - Any change to `frontend/jukebox-panel.js` bumps `VERSION` in `const.py` and
