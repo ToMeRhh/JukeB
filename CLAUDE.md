@@ -21,6 +21,7 @@ has no UI and no state.
 
 Every top-level folder has a README written for someone building the box; keep
 them in sync with the code. Keep new top-level concerns in their own folder (e.g. `tools/`).
+The repo holds no case or 3D models: users build the box into any enclosure.
 
 ## Build and test
 

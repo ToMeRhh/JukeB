@@ -37,13 +37,14 @@ change how it behaves.
 
 | Part | Notes |
 |---|---|
-| ESP32 DevKit V1 (30-pin, ESP32-WROOM-32) | Other ESP32-WROOM boards work too (not WROVER: it uses GPIO16/17) |
+| ESP32 DevKit V1 (30-pin, ESP32-WROOM-32) | Other ESP32-WROOM boards work too (not WROVER: it uses GPIO16/17). |
 | RC522 RFID reader module (13.56 MHz) | The common blue board, ideally with a right-angle header |
 | RFID tags, 13.56 MHz (MIFARE Classic / NTAG) | Coin tags, stickers or cards |
 | 7 female-to-female jumper wires | |
 | Micro-USB cable and a 5 V USB power supply | Powers the box |
 | A speaker Home Assistant can play to | Any `media_player` that can play MP3s, e.g. a Google Nest Mini |
 | Home Assistant | Developed against Home Assistant 2026.x |
+| A case | Any box with room for the reader and the ESP32; see [step 5](#5-put-it-in-a-case) |
 
 ## Wiring
 
@@ -100,8 +101,13 @@ and integration READMEs.
 
 ### 5. Put it in a case
 
-Any box that holds the ESP32 and the reader will do. Keep the reader's antenna within a few
-millimetres of where the tag sits.
+JukeB has no fixed case: put the electronics in any box you like, bought, built or 3D-printed.
+Keep these in mind:
+
+- The reader reads through a few millimetres of plastic or wood, not metal. Put the place where
+  the toy sits right over the reader's antenna, no more than about 5 mm away.
+- Keep spare tags at least 3 cm from the reader, or it may read them instead.
+- Leave a way in for the USB cable, and room for the reader's header pins and the jumper wires.
 
 ### 6. Add songs and tags
 
@@ -138,3 +144,6 @@ Home Assistant also gets a **Jukebox** device with a `binary_sensor.jukebox_onli
   [home-assistant/README.md](home-assistant/README.md#protocol). Playback behaviour is always an
   integration change, never a firmware change.
 
+## License
+
+Everything in this repository (integration and firmware) is released under the [MIT License](LICENSE).
