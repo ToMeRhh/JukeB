@@ -4,14 +4,14 @@ Receives tag events from the JukeB box (ESP32 + RC522), decides what to play,
 and plays it on a speaker. Everything is configured from the **Jukebox**
 panel in the Home Assistant sidebar.
 
-This folder is one part of JukeB; the [top-level README](../README.md) shows how
-the pieces fit together.
+This folder holds the integration's docs and tests; the code is in
+[`custom_components/jukebox`](../custom_components/jukebox) at the repository root,
+where HACS expects it. The [top-level README](../README.md) shows how the pieces
+fit together.
 
 ## Requirements
 
-- Home Assistant 2026.x (the test suite runs against the 2026 release line).
-- Access to the Home Assistant `config` folder (Samba, SSH, the File editor or
-  Studio Code Server add-on, or a shell on the host).
+- Home Assistant 2026.2 or newer.
 - A `media_player` entity that can play MP3 files from Home Assistant's media
   folder, such as a Google Cast / Nest speaker.
 - An admin user: the Jukebox panel and its API are admin only.
@@ -20,23 +20,36 @@ the pieces fit together.
 
 ## Install
 
-1. Copy `custom_components/jukebox` from this folder into your Home Assistant
-   `config/custom_components/` folder (create `custom_components` if it does not
-   exist). The result must be `config/custom_components/jukebox/manifest.json`.
+### With HACS (recommended)
 
-   From a checkout of this repository, on the Home Assistant host:
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ToMeRhh&repository=JukeB&category=integration)
 
-   ```bash
-   cp -r home-assistant/custom_components/jukebox /config/custom_components/
-   ```
+Or by hand: HACS → **⋮** → **Custom repositories**, add
+`https://github.com/ToMeRhh/JukeB` with type **Integration**, then search for
+**Jukebox**, **Download**, and restart Home Assistant.
 
-2. Restart Home Assistant (Settings → System → Restart).
-3. Settings → Devices & services → Add integration → **Jukebox**.
+### Manually
+
+Copy `custom_components/jukebox` from the repository root into your Home Assistant
+`config/custom_components/` folder (create `custom_components` if it does not
+exist), using Samba, SSH, the File editor or Studio Code Server add-on. The result
+must be `config/custom_components/jukebox/manifest.json`. From a checkout, on the
+Home Assistant host:
+
+```bash
+cp -r custom_components/jukebox /config/custom_components/
+```
+
+Then restart Home Assistant (Settings → System → Restart).
+
+### Add the integration
+
+1. Settings → Devices & services → Add integration → **Jukebox**.
    - *Webhook ID*: any short secret-ish name. It must equal `JUKEBOX_WEBHOOK_ID`
      in the firmware's `config.h` (default `jukebox`).
    - *Speaker*: the `media_player` entity to play on. This is only the initial value;
      from then on the speaker is changed in the panel's Settings tab, not here.
-4. Open **Jukebox** in the sidebar (admin users only). It shows *Offline* until
+2. Open **Jukebox** in the sidebar (admin users only). It shows *Offline* until
    the box sends its first event; [flash the firmware](../firmware/README.md) next.
 
 The integration adds one **Jukebox** device with two entities for automations and
@@ -50,15 +63,16 @@ dashboards:
 
 ## Update
 
-Replace `config/custom_components/jukebox` with the new version and restart Home
-Assistant. Tags, settings and uploaded files are kept: they live in Home
+With HACS: open Jukebox in HACS, click **Update** (or **Redownload**), and
+restart Home Assistant. Manually: replace `config/custom_components/jukebox` with
+the new version and restart. Tags, settings and uploaded files are kept: they live in Home
 Assistant's storage and media folder, not in the integration folder. If the
 panel still looks old, reload the browser page.
 
 ## Uninstall
 
-Remove the integration under Settings → Devices & services, delete
-`config/custom_components/jukebox`, and restart. Your tags and settings stay in
+Remove the integration under Settings → Devices & services, then remove it in
+HACS (or delete `config/custom_components/jukebox`), and restart. Your tags and settings stay in
 `config/.storage/jukebox` and uploaded MP3s in `<media folder>/jukebox/`; delete
 those too for a clean slate.
 

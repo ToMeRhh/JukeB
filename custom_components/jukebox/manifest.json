@@ -1,12 +1,13 @@
 {
   "domain": "jukebox",
   "name": "Jukebox",
-  "codeowners": [],
+  "codeowners": ["@ToMeRhh"],
   "config_flow": true,
   "dependencies": ["http", "webhook", "websocket_api", "frontend", "panel_custom", "media_source"],
   "documentation": "https://github.com/ToMeRhh/JukeB",
   "integration_type": "service",
   "iot_class": "local_push",
+  "issue_tracker": "https://github.com/ToMeRhh/JukeB/issues",
   "requirements": [],
   "single_config_entry": true,
   "version": "2.2.0"

@@ -41,5 +41,5 @@ async def test_reload_keeps_working(hass, setup_jukebox):
 
 
 def test_manifest_version_matches_const():
-    manifest = json.loads((Path(__file__).parent.parent / "custom_components/jukebox/manifest.json").read_text())
+    manifest = json.loads((Path(__file__).parent.parent.parent / "custom_components/jukebox/manifest.json").read_text())
     assert manifest["version"] == VERSION
