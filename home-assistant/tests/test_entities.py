@@ -6,32 +6,32 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-from custom_components.jukebox.const import DOMAIN
+from custom_components.jukeb.const import DOMAIN
 
-ONLINE = "binary_sensor.jukebox_online"
-ENABLED = "switch.jukebox_enabled"
+ONLINE = "binary_sensor.jukeb_online"
+ENABLED = "switch.jukeb_enabled"
 
 
 async def heartbeat(hass, hass_client_no_auth, **extra):
     client = await hass_client_no_auth()
-    payload = {"event": "heartbeat", "rssi": -55, "uptime_s": 10, "version": "2.2.0", "box_id": "jukebox", **extra}
-    resp = await client.post("/api/webhook/jukebox", json=payload)
+    payload = {"event": "heartbeat", "rssi": -55, "uptime_s": 10, "version": "2.2.0", "box_id": "jukeb", **extra}
+    resp = await client.post("/api/webhook/jukeb", json=payload)
     assert resp.status == 200
     await hass.async_block_till_done()
 
 
-async def test_entities_and_device_created(hass, setup_jukebox):
+async def test_entities_and_device_created(hass, setup_jukeb):
     assert hass.states.get(ONLINE).state == "off"
     assert hass.states.get(ONLINE).attributes["device_class"] == "connectivity"
     assert hass.states.get(ENABLED).state == "on"
-    assert hass.states.get(ONLINE).attributes["friendly_name"] == "Jukebox Online"
-    assert hass.states.get(ENABLED).attributes["friendly_name"] == "Jukebox Enabled"
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, setup_jukebox.entry_id)})
-    assert device is not None and device.name == "Jukebox"
+    assert hass.states.get(ONLINE).attributes["friendly_name"] == "JukeB Online"
+    assert hass.states.get(ENABLED).attributes["friendly_name"] == "JukeB Enabled"
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, setup_jukeb.entry_id)})
+    assert device is not None and device.name == "JukeB"
     assert device.sw_version is None
 
 
-async def test_entities_use_translation_keys(hass, setup_jukebox):
+async def test_entities_use_translation_keys(hass, setup_jukeb):
     # Names come from translations/en.json and the switch icon from icons.json, both by key.
     registry = er.async_get(hass)
     assert registry.async_get(ONLINE).translation_key == "online"
@@ -39,7 +39,7 @@ async def test_entities_use_translation_keys(hass, setup_jukebox):
 
 
 def test_icons_match_translations():
-    integration = Path(__file__).resolve().parents[2] / "custom_components" / "jukebox"
+    integration = Path(__file__).resolve().parents[2] / "custom_components" / "jukeb"
     icons = json.loads((integration / "icons.json").read_text())["entity"]
     strings = json.loads((integration / "strings.json").read_text())["entity"]
     assert icons == {"switch": {"enabled": {"default": "mdi:music-note", "state": {"off": "mdi:music-note-off"}}}}
@@ -50,12 +50,12 @@ def test_icons_match_translations():
     )
 
 
-async def test_online_follows_events_and_times_out(hass, setup_jukebox, hass_client_no_auth, freezer):
+async def test_online_follows_events_and_times_out(hass, setup_jukeb, hass_client_no_auth, freezer):
     await heartbeat(hass, hass_client_no_auth)
     state = hass.states.get(ONLINE)
     assert state.state == "on"
-    assert state.attributes["rssi"] == -55 and state.attributes["box_id"] == "jukebox"
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, setup_jukebox.entry_id)})
+    assert state.attributes["rssi"] == -55 and state.attributes["box_id"] == "jukeb"
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, setup_jukeb.entry_id)})
     assert device.sw_version == "2.2.0"
 
     freezer.tick(60)
@@ -75,7 +75,7 @@ async def test_online_follows_events_and_times_out(hass, setup_jukebox, hass_cli
     assert hass.states.get(ONLINE).state == "off"
 
 
-async def test_switch_writes_store_and_follows_panel(hass, setup_jukebox, hass_ws_client):
+async def test_switch_writes_store_and_follows_panel(hass, setup_jukeb, hass_ws_client):
     await hass.services.async_call("switch", "turn_off", {"entity_id": ENABLED}, blocking=True)
     assert hass.states.get(ENABLED).state == "off"
     data = hass.data[DOMAIN]
@@ -83,7 +83,7 @@ async def test_switch_writes_store_and_follows_panel(hass, setup_jukebox, hass_w
     assert data.controller.snapshot()["active"] is False
 
     ws = await hass_ws_client(hass)
-    await ws.send_json({"id": 1, "type": "jukebox/settings/set", "settings": {"enabled": True}})
+    await ws.send_json({"id": 1, "type": "jukeb/settings/set", "settings": {"enabled": True}})
     assert (await ws.receive_json())["success"]
     await hass.async_block_till_done()
     assert hass.states.get(ENABLED).state == "on"
@@ -92,8 +92,8 @@ async def test_switch_writes_store_and_follows_panel(hass, setup_jukebox, hass_w
     assert data.store.settings.enabled is True
 
 
-async def test_unload_removes_entities(hass, setup_jukebox):
-    assert await hass.config_entries.async_unload(setup_jukebox.entry_id)
+async def test_unload_removes_entities(hass, setup_jukeb):
+    assert await hass.config_entries.async_unload(setup_jukeb.entry_id)
     await hass.async_block_till_done()
     # HA keeps registered entities as "unavailable" until the entry loads again.
     assert hass.states.get(ONLINE).state == "unavailable"

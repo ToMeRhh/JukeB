@@ -23,7 +23,7 @@ Reply parse(int httpCode, const std::string& body) {
   }
   if (!isJson || !doc["ok"].is<bool>()) {
     r.message = "HTTP " + std::to_string(httpCode) +
-                " but no Jukebox reply (is the integration installed and the webhook id right?)";
+                " but no JukeB reply (is the integration installed and the webhook id right?)";
     return r;
   }
   r.ok = doc["ok"].as<bool>();

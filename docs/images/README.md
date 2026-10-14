@@ -9,7 +9,7 @@ Pictures used by the top-level README, plus the source of the integration icon.
 | `icon.svg` | done | Integration icon shown in Home Assistant and HACS; after editing run `../../tools/render_icon.py` |
 | `wiring.svg` | done | ESP32 to RC522 wiring (generated; edit the SVG directly) |
 | `build-*.jpg` | **to do** | Photos of real builds, added to the *Ideas* table |
-| `panel.png` | **to do** | Screenshot of the Jukebox panel in Home Assistant, Tags tab with a few tags |
+| `panel.png` | **to do** | Screenshot of the JukeB panel in Home Assistant, Tags tab with a few tags |
 | `wired.jpg` | **to do** | The ESP32 and RC522 wired together on the desk, before going into anything |
 
 When you add one, replace its hidden `<!-- 📷 ... -->` comment in `../../README.md` with the image link.

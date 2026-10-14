@@ -1,9 +1,9 @@
 import pytest
 from pytest_homeassistant_custom_component.common import async_mock_service
 
-from custom_components.jukebox.const import DOMAIN
+from custom_components.jukeb.const import DOMAIN
 
-URL = "/api/webhook/jukebox"
+URL = "/api/webhook/jukeb"
 
 
 @pytest.fixture
@@ -15,7 +15,7 @@ def services(hass):
 
 
 @pytest.fixture
-async def client(hass, setup_jukebox, hass_client_no_auth, services):
+async def client(hass, setup_jukeb, hass_client_no_auth, services):
     hass.states.async_set("media_player.kitchen", "idle")
     data = hass.data[DOMAIN]
     await data.media.async_save("dino.mp3", b"x")
@@ -29,13 +29,13 @@ async def post(client, body):
 
 
 async def test_present_known(hass, client, services):
-    status, body = await post(client, {"event": "present", "uid": "aa:01", "box_id": "jukebox", "version": "2.0.0"})
+    status, body = await post(client, {"event": "present", "uid": "aa:01", "box_id": "jukeb", "version": "2.0.0"})
     assert (status, body) == (200, {"ok": True, "known": True})
     await hass.async_block_till_done()
     assert len(services["play_media"]) == 1
     data = hass.data[DOMAIN]
     assert data.controller.current_uid == "AA:01"
-    assert data.box.box_id == "jukebox" and data.box.version == "2.0.0"
+    assert data.box.box_id == "jukeb" and data.box.version == "2.0.0"
     assert data.box.last_seen is not None
 
 

@@ -6,7 +6,7 @@ import custom_components  # noqa: F401  (must stay first)
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.jukebox.const import CONF_PLAYER, CONF_WEBHOOK_ID, DOMAIN
+from custom_components.jukeb.const import CONF_PLAYER, CONF_WEBHOOK_ID, DOMAIN
 
 PLAYER = "media_player.kitchen"
 
@@ -29,15 +29,15 @@ def hass_media_dir(hass, tmp_path):
 def config_entry(hass, hass_media_dir):
     entry = MockConfigEntry(
         domain=DOMAIN,
-        title="Jukebox",
-        data={CONF_WEBHOOK_ID: "jukebox", CONF_PLAYER: PLAYER},
+        title="JukeB",
+        data={CONF_WEBHOOK_ID: "jukeb", CONF_PLAYER: PLAYER},
     )
     entry.add_to_hass(hass)
     return entry
 
 
 @pytest.fixture
-async def setup_jukebox(hass, config_entry):
+async def setup_jukeb(hass, config_entry):
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
     return config_entry

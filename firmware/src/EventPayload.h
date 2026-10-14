@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-// Builds the JSON bodies the box posts to the Jukebox webhook.
+// Builds the JSON bodies the box posts to the JukeB webhook.
 namespace EventPayload {
 
 struct BoxInfo {

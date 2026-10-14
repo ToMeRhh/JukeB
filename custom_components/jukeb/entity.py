@@ -1,4 +1,4 @@
-"""Base class for the Jukebox entities."""
+"""Base class for the JukeB entities."""
 
 from __future__ import annotations
 
@@ -8,19 +8,19 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
 from .const import DOMAIN, MANUFACTURER, SIGNAL_UPDATE
-from .data import JukeboxData
+from .data import JukeBData
 
 
-class JukeboxEntity(Entity):
+class JukeBEntity(Entity):
     _attr_has_entity_name = True
     _attr_should_poll = False
 
-    def __init__(self, data: JukeboxData, key: str) -> None:
+    def __init__(self, data: JukeBData, key: str) -> None:
         self._data = data
         self._attr_unique_id = f"{data.entry.entry_id}_{key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, data.entry.entry_id)},
-            name="Jukebox",
+            name="JukeB",
             manufacturer=MANUFACTURER,
         )
 

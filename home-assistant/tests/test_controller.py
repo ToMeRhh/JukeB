@@ -5,12 +5,12 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_fire_time_changed, async_mock_service
 
-from custom_components.jukebox.controller import BoxStatus, JukeboxController
-from custom_components.jukebox.media import MediaLibrary
-from custom_components.jukebox.store import JukeboxStore, StoreError
+from custom_components.jukeb.controller import BoxStatus, JukeBController
+from custom_components.jukeb.media import MediaLibrary
+from custom_components.jukeb.store import JukeBStore, StoreError
 
 PLAYER = "media_player.kitchen"
-URI = "media-source://media_source/media/jukebox/dino.mp3"
+URI = "media-source://media_source/media/jukeb/dino.mp3"
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def services(hass):
 
 @pytest.fixture
 async def ctl(hass, hass_media_dir):
-    store = JukeboxStore(hass, PLAYER)
+    store = JukeBStore(hass, PLAYER)
     await store.async_load()
     media = MediaLibrary(hass)
     await media.async_setup()
@@ -32,7 +32,7 @@ async def ctl(hass, hass_media_dir):
     await store.async_set_tag("AA:01", "Dino", {"type": "file", "path": "dino.mp3"}, media.exists)
     await store.async_set_tag("BB:02", "Cat", {"type": "file", "path": "cat.mp3"}, media.exists)
     hass.states.async_set(PLAYER, "idle")
-    controller = JukeboxController(hass, store, media)
+    controller = JukeBController(hass, store, media)
     yield controller
     await controller.async_shutdown()
 
@@ -105,7 +105,7 @@ async def test_other_tag_during_grace_plays_new_and_cancels_pause(hass, ctl, ser
     assert services["media_pause"] == []
     assert [c.data["media_content_id"] for c in services["play_media"]] == [
         URI,
-        "media-source://media_source/media/jukebox/cat.mp3",
+        "media-source://media_source/media/jukeb/cat.mp3",
     ]
     assert ctl.current_uid == "BB:02"
 
@@ -242,12 +242,12 @@ def test_box_status_online_offline():
     now = dt_util.utcnow()
     assert box.online(now) is False
     assert box.as_dict(now)["online"] is False and box.as_dict(now)["last_seen"] is None
-    box.touch({"box_id": "jukebox", "version": "2.0.0", "rssi": -61, "uptime_s": 12}, now)
+    box.touch({"box_id": "jukeb", "version": "2.0.0", "rssi": -61, "uptime_s": 12}, now)
     assert box.online(now + timedelta(seconds=89)) is True
     assert box.online(now + timedelta(seconds=90)) is False
     d = box.as_dict(now)
     assert d["rssi"] == -61 and d["uptime_s"] == 12 and d["version"] == "2.0.0"
-    assert d["box_id"] == "jukebox" and d["last_seen"] == now.isoformat()
+    assert d["box_id"] == "jukeb" and d["last_seen"] == now.isoformat()
     box.touch({"rssi": "weak"}, now)  # bad types are ignored, last_seen still updates
     assert box.as_dict(now)["rssi"] is None
 

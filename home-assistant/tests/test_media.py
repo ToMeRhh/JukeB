@@ -1,6 +1,6 @@
 import pytest
 
-from custom_components.jukebox.media import MediaError, MediaLibrary, sanitize_filename
+from custom_components.jukeb.media import MediaError, MediaLibrary, sanitize_filename
 
 
 def test_sanitize_filename():
@@ -24,10 +24,10 @@ async def test_save_list_delete_unicode(hass, hass_media_dir):
     lib = MediaLibrary(hass)
     await lib.async_setup()
     assert await lib.async_save("שיר.mp3", b"ID3") == {"path": "שיר.mp3", "size": 3}
-    assert (hass_media_dir / "jukebox" / "שיר.mp3").exists()
+    assert (hass_media_dir / "jukeb" / "שיר.mp3").exists()
     assert lib.exists("שיר.mp3")
     assert await lib.async_list() == [{"path": "שיר.mp3", "size": 3}]
-    assert lib.uri("שיר.mp3") == "media-source://media_source/media/jukebox/שיר.mp3"
+    assert lib.uri("שיר.mp3") == "media-source://media_source/media/jukeb/שיר.mp3"
     await lib.async_delete("שיר.mp3")
     assert await lib.async_list() == []
 
@@ -35,9 +35,9 @@ async def test_save_list_delete_unicode(hass, hass_media_dir):
 async def test_setup_creates_folder_and_uri(hass, hass_media_dir):
     lib = MediaLibrary(hass)
     await lib.async_setup()
-    assert (hass_media_dir / "jukebox").is_dir()
+    assert (hass_media_dir / "jukeb").is_dir()
     assert lib.dir_name == "media"
-    assert lib.uri("dino.mp3") == "media-source://media_source/media/jukebox/dino.mp3"
+    assert lib.uri("dino.mp3") == "media-source://media_source/media/jukeb/dino.mp3"
 
 
 async def test_save_list_delete(hass, hass_media_dir):
@@ -47,7 +47,7 @@ async def test_save_list_delete(hass, hass_media_dir):
     assert info == {"path": "Dino.mp3", "size": 6}
     assert lib.exists("Dino.mp3")
     assert not lib.exists("nope.mp3")
-    (hass_media_dir / "jukebox" / "notes.txt").write_text("ignored")
+    (hass_media_dir / "jukeb" / "notes.txt").write_text("ignored")
     assert await lib.async_list() == [{"path": "Dino.mp3", "size": 6}]
     await lib.async_delete("Dino.mp3")
     assert await lib.async_list() == []

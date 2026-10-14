@@ -20,7 +20,7 @@ JukeB gives you everything except the box:
 
 | | |
 |---|---|
-| 🏠 **Home Assistant integration** | Installs with HACS. Assign tags to MP3s, pick the speaker, set the rules, all from a **Jukebox** page in the sidebar. |
+| 🏠 **Home Assistant integration** | Installs with HACS. Assign tags to MP3s, pick the speaker, set the rules, all from a **JukeB** page in the sidebar. |
 | 📟 **Firmware** | For an ESP32. It reports which tag is on the reader and nothing else, so you never need to re-flash it to change what plays. |
 | 🔌 **Reference hardware** | An ESP32 dev board, an RC522 reader and seven jumper wires, with a [wiring diagram](#2-wire-the-reader). |
 | 📦 **The device** | **Up to you.** A wooden box, a shelf, a picture frame, a 3D-printed case, the inside of a toy. |
@@ -46,7 +46,7 @@ Built something with JukeB? Share a photo in an issue.
           ▼
  ┌─────────────────┐   "tag 04:A3:7F:12 placed"   ┌──────────────────────────┐   play    ┌─────────┐
  │ your device     │ ───────── Wi-Fi ───────────▶ │ Home Assistant           │ ────────▶ │ speaker │
- │ ESP32 + RC522   │ ◀────── "known tag" ──────── │ Jukebox integration      │           └─────────┘
+ │ ESP32 + RC522   │ ◀────── "known tag" ──────── │ JukeB integration        │           └─────────┘
  └─────────────────┘                              └──────────────────────────┘
 ```
 
@@ -58,7 +58,7 @@ plays, how loud, and what happens when the tag is removed.
 - 🎛️ **Your rules.** Fixed volume, pause / stop / keep playing on removal, active hours, an on/off switch.
 - 🔒 **Local.** No cloud, no account. The device talks only to Home Assistant on your network.
 
-<!-- 📷 the Jukebox panel in Home Assistant (Tags tab, a few tags listed). Save as `docs/images/panel.png`. -->
+<!-- 📷 the JukeB panel in Home Assistant (Tags tab, a few tags listed). Save as `docs/images/panel.png`. -->
 
 ## What you need
 
@@ -85,25 +85,25 @@ Click the button above, or do it by hand:
 
 1. In Home Assistant, open **HACS**, click the **⋮** menu (top right) and choose **Custom repositories**.
 2. Paste `https://github.com/ToMeRhh/JukeB`, set the type to **Integration** and click **Add**.
-3. Search HACS for **Jukebox**, open it and click **Download**.
+3. Search HACS for **JukeB**, open it and click **Download**.
 4. Restart Home Assistant.
 
 **Without HACS**
 
-Copy the [`custom_components/jukebox`](custom_components/jukebox) folder from this repository into
+Copy the [`custom_components/jukeb`](custom_components/jukeb) folder from this repository into
 your Home Assistant `config/custom_components/` folder and restart Home Assistant.
 
 **Then add it**
 
-[![Open your Home Assistant instance and start setting up Jukebox.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=jukebox)
+[![Open your Home Assistant instance and start setting up JukeB.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=jukeb)
 
-Or go to **Settings → Devices & services → Add integration** and pick **Jukebox**. It asks for two things:
+Or go to **Settings → Devices & services → Add integration** and pick **JukeB**. It asks for two things:
 
-- **Webhook ID**: the address the device sends to. Keep the default `jukebox` unless you have a
+- **Webhook ID**: the address the device sends to. Keep the default `jukeb` unless you have a
   reason to change it. You'll need it again in step 3.
 - **Speaker**: where the music plays. You can change it later.
 
-A **Jukebox** page now appears in the sidebar. It shows *Offline* until the device is running.
+A **JukeB** page now appears in the sidebar. It shows *Offline* until the device is running.
 
 ### 2. Wire the reader
 
@@ -145,13 +145,13 @@ Wire it on the desk first. It's much easier to test before it goes into anything
    pio run -e esp32dev -t upload
    ```
 
-Within a few seconds the Jukebox page in Home Assistant switches to **Online**.
+Within a few seconds the JukeB page in Home Assistant switches to **Online**.
 If it doesn't, see [firmware/README.md](firmware/README.md#serial-checklist) for the serial log
 checklist and what the LED blinks mean.
 
 ### 4. Add tracks and tags
 
-In the **Jukebox** page:
+In the **JukeB** page:
 
 1. **Media** tab: drag in your MP3 files.
 2. Put a tag on the reader. The ESP32's LED blinks three times ("I don't know this one") and the
@@ -171,7 +171,7 @@ This part is yours. Whatever you build, a few things make the reader work well:
 
 ## Settings and automations
 
-The **Settings** tab of the Jukebox page lets you:
+The **Settings** tab of the JukeB page lets you:
 
 - change the speaker and set a fixed volume,
 - choose what happens when a tag is removed: keep playing, pause or stop,
@@ -179,10 +179,10 @@ The **Settings** tab of the Jukebox page lets you:
 
 The **Enabled** switch at the top turns playback off for a while.
 
-Home Assistant also gets a **Jukebox** device for your automations and dashboards:
+Home Assistant also gets a **JukeB** device for your automations and dashboards:
 
-- `binary_sensor.jukebox_online`: whether the device is connected,
-- `switch.jukebox_enabled`: the same on/off switch as in the Jukebox page.
+- `binary_sensor.jukeb_online`: whether the device is connected,
+- `switch.jukeb_enabled`: the same on/off switch as in the JukeB page.
 
 More detail, troubleshooting and the update and uninstall steps are in
 [home-assistant/README.md](home-assistant/README.md).
@@ -191,7 +191,7 @@ More detail, troubleshooting and the update and uninstall steps are in
 
 | Folder | What's inside |
 |---|---|
-| [`custom_components/jukebox/`](custom_components/jukebox) | The Home Assistant integration and its sidebar page (this is what HACS installs) |
+| [`custom_components/jukeb/`](custom_components/jukeb) | The Home Assistant integration and its sidebar page (this is what HACS installs) |
 | [`home-assistant/`](home-assistant/) | Integration docs and tests |
 | [`firmware/`](firmware/) | ESP32 firmware (PlatformIO, Arduino) and its tests |
 | [`docs/`](docs/) | Banner, icon, wiring diagram, example drawings and photos |

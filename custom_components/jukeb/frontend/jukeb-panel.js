@@ -1,8 +1,8 @@
-/* Jukebox panel: vanilla web component, no build step, no external imports. */
-const UPLOAD_URL = "/api/jukebox/upload";
+/* JukeB panel: vanilla web component, no build step, no external imports. */
+const UPLOAD_URL = "/api/jukeb/upload";
 const POLL_MS = 2000;
 const TABS = ["tags", "media", "settings"];
-const TAB_KEY = "jukebox-panel-tab";
+const TAB_KEY = "jukeb-panel-tab";
 
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -75,7 +75,7 @@ const STYLE = `
   .hours input { width: auto; }
 `;
 
-class JukeboxPanel extends HTMLElement {
+class JukeBPanel extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -158,27 +158,27 @@ class JukeboxPanel extends HTMLElement {
 
   async _refreshStatus() {
     try {
-      this._status = await this._ws({ type: "jukebox/status" });
+      this._status = await this._ws({ type: "jukeb/status" });
       this._renderStatus();
       this._renderScan();
     } catch (e) {
-      this.$("stError").textContent = `Cannot reach the Jukebox integration: ${e.message || e}`;
+      this.$("stError").textContent = `Cannot reach the JukeB integration: ${e.message || e}`;
     }
   }
 
   async _refreshTags() {
-    this._tags = (await this._ws({ type: "jukebox/tags/list" })).tags;
+    this._tags = (await this._ws({ type: "jukeb/tags/list" })).tags;
     this._renderTags();
   }
 
   async _refreshFiles() {
-    this._files = (await this._ws({ type: "jukebox/media/list" })).files;
+    this._files = (await this._ws({ type: "jukeb/media/list" })).files;
     this._renderFiles();
     this._renderFileOptions();
   }
 
   async _refreshSettings() {
-    this._settings = (await this._ws({ type: "jukebox/settings/get" })).settings;
+    this._settings = (await this._ws({ type: "jukeb/settings/get" })).settings;
     this._renderSettings();
   }
 
@@ -188,15 +188,15 @@ class JukeboxPanel extends HTMLElement {
     this._rendered = true;
     this.shadowRoot.innerHTML = `
       <style>${STYLE}</style>
-      <h1>Jukebox</h1>
+      <h1>JukeB</h1>
       <div class="card">
         <div class="status">
           <div class="cell"><span class="k">Enabled</span>
-            <label class="toggle" title="Turn the jukebox on or off"><input id="enabledToggle" type="checkbox" disabled><span class="knob"></span></label></div>
+            <label class="toggle" title="Turn JukeB on or off"><input id="enabledToggle" type="checkbox" disabled><span class="knob"></span></label></div>
           <div class="cell"><span class="k">Box</span><span class="v" id="stBox">—</span><span class="sub" id="stSeen"></span></div>
           <div class="cell"><span class="k">Signal</span><span class="v" id="stRssi">—</span><span class="sub" id="stBoxId"></span></div>
           <div class="cell"><span class="k">Firmware</span><span class="v" id="stFw">—</span><span class="sub"></span></div>
-          <div class="cell"><span class="k">Jukebox</span><span class="v" id="stActive">—</span><span class="sub" id="stActiveWhy"></span></div>
+          <div class="cell"><span class="k">Playback</span><span class="v" id="stActive">—</span><span class="sub" id="stActiveWhy"></span></div>
           <div class="cell"><span class="k">Playing</span><span class="v" id="stPlaying">—</span><span class="sub" id="stPlayingUid"></span></div>
           <div class="err bad" id="stError"></div>
           <div class="foot" id="stFoot"></div>
@@ -372,7 +372,7 @@ class JukeboxPanel extends HTMLElement {
     const toggle = this.$("enabledToggle");
     toggle.disabled = true;
     try {
-      this._settings = (await this._ws({ type: "jukebox/settings/set", settings: { enabled: on } })).settings;
+      this._settings = (await this._ws({ type: "jukeb/settings/set", settings: { enabled: on } })).settings;
       await this._refreshStatus();
     } catch (e) {
       this.$("stError").textContent = `Could not change Enabled: ${e.message || e}`;
@@ -454,7 +454,7 @@ class JukeboxPanel extends HTMLElement {
     if (!name) return this._say("tagMsg", "Name is required", false);
     if (!path) return this._say("tagMsg", "Upload an MP3 first, then pick it here", false);
     try {
-      const r = await this._ws({ type: "jukebox/tags/set", uid, name, media: { type: "file", path } });
+      const r = await this._ws({ type: "jukeb/tags/set", uid, name, media: { type: "file", path } });
       await this._refreshTags();
       this._resetTagForm();
       this._say("tagMsg", `Saved ${r.tag.name} (${r.uid})`, true);
@@ -465,7 +465,7 @@ class JukeboxPanel extends HTMLElement {
 
   async _playTag(uid) {
     try {
-      await this._ws({ type: "jukebox/play", uid });
+      await this._ws({ type: "jukeb/play", uid });
       this._say("tagMsg", `Playing ${this._tags[uid].name}`, true);
       setTimeout(() => this._refreshStatus(), 500);
     } catch (e) {
@@ -476,7 +476,7 @@ class JukeboxPanel extends HTMLElement {
   async _deleteTag(uid) {
     if (!confirm(`Delete tag "${this._tags[uid].name}" (${uid})?`)) return;
     try {
-      await this._ws({ type: "jukebox/tags/delete", uid });
+      await this._ws({ type: "jukeb/tags/delete", uid });
       if (this._editing === uid) this._resetTagForm();
       await this._refreshTags();
       this._say("tagMsg", "Tag deleted", true);
@@ -561,7 +561,7 @@ class JukeboxPanel extends HTMLElement {
   async _deleteFile(path) {
     if (!confirm(`Delete "${path}"?`)) return;
     try {
-      await this._ws({ type: "jukebox/media/delete", path });
+      await this._ws({ type: "jukeb/media/delete", path });
       if (path === this._previewPath) { const a = this.$("preview"); a.pause(); a.removeAttribute("src"); a.load(); this._previewPath = null; }
       await this._refreshFiles();
       this._say("fileMsg", `Deleted ${path}`, true);
@@ -617,7 +617,7 @@ class JukeboxPanel extends HTMLElement {
       active_until: this.$("sUntil").value || null,
     };
     try {
-      this._settings = (await this._ws({ type: "jukebox/settings/set", settings })).settings;
+      this._settings = (await this._ws({ type: "jukeb/settings/set", settings })).settings;
       this._renderSettings();
       this._say("settingsMsg", "Saved", true);
       this._refreshStatus();
@@ -627,4 +627,4 @@ class JukeboxPanel extends HTMLElement {
   }
 }
 
-customElements.define("jukebox-panel", JukeboxPanel);
+customElements.define("jukeb-panel", JukeBPanel);

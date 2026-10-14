@@ -14,9 +14,9 @@ from .data import get_data
 from .media import MediaError
 
 
-class JukeboxUploadView(HomeAssistantView):
+class JukeBUploadView(HomeAssistantView):
     url = UPLOAD_URL
-    name = "api:jukebox:upload"
+    name = "api:jukeb:upload"
 
     async def post(self, request: web.Request) -> web.Response:
         if not request["hass_user"].is_admin:

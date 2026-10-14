@@ -1,12 +1,12 @@
 import pytest
 
-from custom_components.jukebox.store import JukeboxStore, StoreError, normalize_uid
+from custom_components.jukeb.store import JukeBStore, StoreError, normalize_uid
 
 PLAYER = "media_player.kitchen"
 
 
 async def make_store(hass):
-    store = JukeboxStore(hass, PLAYER)
+    store = JukeBStore(hass, PLAYER)
     await store.async_load()
     return store
 
@@ -38,7 +38,7 @@ async def test_settings_roundtrip_and_clamping(hass, hass_storage):
     assert s.volume == 1.0
     assert s.on_remove == "stop"
     assert s.remove_grace_s == 60
-    assert hass_storage["jukebox"]["data"]["settings"]["player"] == "media_player.den"
+    assert hass_storage["jukeb"]["data"]["settings"]["player"] == "media_player.den"
 
     reloaded = await make_store(hass)
     assert reloaded.settings == s
@@ -84,7 +84,7 @@ async def test_tag_upsert_delete(hass, hass_storage):
     assert tag.media_path == "dino.mp3"
     assert tag.added_at.endswith("+00:00")
     assert store.get_tag("04:A3:7F:12") == tag
-    assert hass_storage["jukebox"]["data"]["tags"]["04:A3:7F:12"]["media"] == {
+    assert hass_storage["jukeb"]["data"]["tags"]["04:A3:7F:12"]["media"] == {
         "type": "file",
         "path": "dino.mp3",
     }
@@ -131,7 +131,7 @@ async def test_tags_using(hass):
 
 
 async def test_corrupt_storage_falls_back_to_defaults(hass, hass_storage):
-    hass_storage["jukebox"] = {"version": 1, "key": "jukebox", "data": {"settings": "nope", "tags": []}}
+    hass_storage["jukeb"] = {"version": 1, "key": "jukeb", "data": {"settings": "nope", "tags": []}}
     store = await make_store(hass)
     assert store.settings.player == PLAYER
     assert store.tags == {}
@@ -142,7 +142,7 @@ async def test_enabled_and_window_roundtrip(hass, hass_storage):
     s = await store.async_set_settings({"enabled": False, "active_from": "7:05", "active_until": "20:00"})
     assert s.enabled is False
     assert s.active_from == "07:05" and s.active_until == "20:00"
-    assert hass_storage["jukebox"]["data"]["settings"]["active_from"] == "07:05"
+    assert hass_storage["jukeb"]["data"]["settings"]["active_from"] == "07:05"
     s = await store.async_set_settings({"active_from": None, "active_until": None})
     assert s.active_from is None and s.active_until is None
 

@@ -26,7 +26,7 @@ async def async_register_panel(hass: HomeAssistant) -> None:
         webcomponent_name=PANEL_ELEMENT,
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        module_url=f"{STATIC_URL}/jukebox-panel.js?v={VERSION}",
+        module_url=f"{STATIC_URL}/jukeb-panel.js?v={VERSION}",
         require_admin=True,
         config={"version": VERSION},
     )

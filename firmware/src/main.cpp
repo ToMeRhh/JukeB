@@ -30,8 +30,8 @@ constexpr uint8_t kLedPin = 2;
 constexpr uint32_t kHeartbeatMs = 30000;
 constexpr size_t kQueueMax = 16;
 
-const std::string kWebhookUrl = std::string(JUKEBOX_HA_URL) + "/api/webhook/" + JUKEBOX_WEBHOOK_ID;
-const EventPayload::BoxInfo kBox{JUKEBOX_BOX_ID, JUKEBOX_VERSION};
+const std::string kWebhookUrl = std::string(JUKEB_HA_URL) + "/api/webhook/" + JUKEB_WEBHOOK_ID;
+const EventPayload::BoxInfo kBox{JUKEB_BOX_ID, JUKEB_VERSION};
 
 struct Pending {
   std::string label;  // for the log
@@ -83,12 +83,12 @@ void setup() {
   digitalWrite(kRstPin, HIGH);
   led.begin();
 
-  Serial.printf("\n[boot] Jukebox firmware %s, box id %s\n", JUKEBOX_VERSION, JUKEBOX_BOX_ID);
+  Serial.printf("\n[boot] JukeB firmware %s, box id %s\n", JUKEB_VERSION, JUKEB_BOX_ID);
   Serial.printf("[boot] webhook %s\n", kWebhookUrl.c_str());
-  Serial.printf("[boot] wifi ssid %s, password %s\n", JUKEBOX_WIFI_SSID, "********");
+  Serial.printf("[boot] wifi ssid %s, password %s\n", JUKEB_WIFI_SSID, "********");
 
   reader.begin();
-  wifi.begin(JUKEBOX_WIFI_SSID, JUKEBOX_WIFI_PASSWORD, JUKEBOX_BOX_ID);
+  wifi.begin(JUKEB_WIFI_SSID, JUKEB_WIFI_PASSWORD, JUKEB_BOX_ID);
   queueHeartbeat(millis());
 }
 

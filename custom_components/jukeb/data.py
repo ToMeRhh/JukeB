@@ -14,17 +14,17 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
 
 from .const import DOMAIN, OFFLINE_AFTER_S, SIGNAL_UPDATE
-from .controller import BoxStatus, JukeboxController
+from .controller import BoxStatus, JukeBController
 from .media import MediaLibrary
-from .store import JukeboxStore
+from .store import JukeBStore
 
 
 @dataclass
-class JukeboxData:
+class JukeBData:
     entry: ConfigEntry
-    store: JukeboxStore
+    store: JukeBStore
     media: MediaLibrary
-    controller: JukeboxController
+    controller: JukeBController
     box: BoxStatus
     hass: HomeAssistant
     device_id: str
@@ -59,8 +59,8 @@ class JukeboxData:
             self._offline_cancel = None
 
 
-def get_data(hass: HomeAssistant) -> JukeboxData:
+def get_data(hass: HomeAssistant) -> JukeBData:
     data = hass.data.get(DOMAIN)
     if data is None:
-        raise HomeAssistantError("Jukebox is not set up")
+        raise HomeAssistantError("JukeB is not set up")
     return data
