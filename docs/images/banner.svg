@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" width="1280" height="420" font-family="'Trebuchet MS', 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b1b5a"/>
+      <stop offset="0.55" stop-color="#43308a"/>
+      <stop offset="1" stop-color="#1f6f9f"/>
+    </linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb648"/>
+      <stop offset="1" stop-color="#f08a24"/>
+    </linearGradient>
+    <linearGradient id="woodTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd27a"/>
+      <stop offset="1" stop-color="#ffbd55"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7fe3ff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7fe3ff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1280" height="420" rx="24" fill="url(#sky)"/>
+
+  <!-- confetti dots -->
+  <g fill="#ffffff" opacity="0.18">
+    <circle cx="80" cy="60" r="4"/><circle cx="210" cy="350" r="3"/><circle cx="560" cy="48" r="3"/>
+    <circle cx="1210" cy="70" r="4"/><circle cx="1240" cy="330" r="3"/><circle cx="660" cy="380" r="4"/>
+    <circle cx="40" cy="250" r="3"/><circle cx="1150" cy="390" r="3"/><circle cx="920" cy="40" r="3"/>
+  </g>
+
+  <!-- ===== the box and the speaker (right side) ===== -->
+  <g transform="translate(800 0)">
+    <ellipse cx="150" cy="366" rx="150" ry="16" fill="#000" opacity="0.25"/>
+    <ellipse cx="150" cy="232" rx="120" ry="60" fill="url(#glow)"/>
+    <!-- front face -->
+    <path d="M30 250 h240 v96 a16 16 0 0 1 -16 16 h-208 a16 16 0 0 1 -16 -16 z" fill="url(#wood)"/>
+    <!-- top face -->
+    <path d="M30 250 l34 -34 h172 l34 34 z" fill="url(#woodTop)"/>
+    <!-- reader pad -->
+    <ellipse cx="150" cy="234" rx="62" ry="11" fill="#ffffff" opacity="0.55"/>
+    <!-- status LED -->
+    <circle cx="236" cy="282" r="8" fill="#5cf29a"/>
+    <circle cx="236" cy="282" r="15" fill="#5cf29a" opacity="0.25"/>
+    <!-- RFID mark on the front -->
+    <g fill="none" stroke="#b85f12" stroke-width="4" stroke-linecap="round" opacity="0.6">
+      <path d="M78 300 a16 16 0 0 1 0 28"/>
+      <path d="M90 292 a28 28 0 0 1 0 44"/>
+      <path d="M102 284 a40 40 0 0 1 0 60"/>
+    </g>
+    <circle cx="70" cy="314" r="5" fill="#b85f12" opacity="0.6"/>
+
+    <!-- toy: a little duck sitting on the reader -->
+    <g transform="translate(108 140)">
+      <ellipse cx="42" cy="82" rx="48" ry="24" fill="#ffe14d"/>
+      <circle cx="56" cy="40" r="28" fill="#ffe14d"/>
+      <path d="M80 38 l24 8 l-24 8 z" fill="#ff8a2a"/>
+      <circle cx="64" cy="32" r="5" fill="#2b1b5a"/>
+      <circle cx="66" cy="30" r="1.6" fill="#fff"/>
+      <path d="M12 78 q20 -18 42 0" fill="none" stroke="#f2c418" stroke-width="5" stroke-linecap="round"/>
+    </g>
+
+    <!-- Wi-Fi hop from box to speaker -->
+    <path d="M250 200 q60 -70 125 -10" fill="none" stroke="#7fe3ff" stroke-width="4" stroke-dasharray="2 12" stroke-linecap="round"/>
+
+    <!-- smart speaker -->
+    <ellipse cx="390" cy="366" rx="56" ry="10" fill="#000" opacity="0.25"/>
+    <path d="M338 300 a52 18 0 0 1 104 0 v42 a52 18 0 0 1 -104 0 z" fill="#e9e6f5"/>
+    <ellipse cx="390" cy="300" rx="52" ry="18" fill="#ffffff"/>
+    <g fill="#9b93c4"><circle cx="372" cy="300" r="3"/><circle cx="384" cy="300" r="3"/><circle cx="396" cy="300" r="3"/><circle cx="408" cy="300" r="3"/></g>
+
+    <!-- music notes floating out of the speaker -->
+    <g fill="#ffffff">
+      <g transform="translate(390 170) rotate(10)">
+        <ellipse cx="0" cy="40" rx="13" ry="10"/>
+        <rect x="9" y="0" width="5" height="40"/>
+        <path d="M14 0 q18 6 14 24 q-4 -12 -14 -12 z"/>
+      </g>
+      <g transform="translate(420 70) rotate(-10)" opacity="0.8">
+        <ellipse cx="0" cy="30" rx="10" ry="8"/>
+        <ellipse cx="34" cy="24" rx="10" ry="8"/>
+        <rect x="7" y="-4" width="4" height="34"/>
+        <rect x="41" y="-10" width="4" height="34"/>
+        <path d="M7 -4 l38 -6 v9 l-38 6 z"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ===== text (left side) ===== -->
+  <text x="80" y="170" font-size="118" font-weight="bold" fill="#ffffff" letter-spacing="2">Juke<tspan fill="#ffbd55">B</tspan></text>
+  <text x="84" y="236" font-size="40" font-weight="bold" fill="#ffe9c2">Put a toy on the box. Its song plays.</text>
+  <text x="84" y="286" font-size="24" fill="#d9d2ff">A tap-to-play RFID music box for kids, powered by Home Assistant</text>
+
+  <!-- chips -->
+  <g font-size="20" font-weight="bold">
+    <rect x="84" y="318" width="190" height="40" rx="20" fill="#18bcf2"/>
+    <text x="179" y="345" text-anchor="middle" fill="#0b2140">Home Assistant</text>
+    <rect x="288" y="318" width="96" height="40" rx="20" fill="#ffffff" opacity="0.92"/>
+    <text x="336" y="345" text-anchor="middle" fill="#2b1b5a">HACS</text>
+    <rect x="398" y="318" width="168" height="40" rx="20" fill="#ffffff" opacity="0.92"/>
+    <text x="482" y="345" text-anchor="middle" fill="#2b1b5a">ESP32 + RC522</text>
+    <rect x="580" y="318" width="152" height="40" rx="20" fill="#ffffff" opacity="0.92"/>
+    <text x="656" y="345" text-anchor="middle" fill="#2b1b5a">No cloud</text>
+  </g>
+</svg>

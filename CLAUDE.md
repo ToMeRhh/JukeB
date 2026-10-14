@@ -13,8 +13,9 @@ has no UI and no state.
 
 ## Layout
 
-- `home-assistant/custom_components/jukebox/` the integration. `frontend/jukebox-panel.js`
-  is the panel (vanilla JS, no build step). `home-assistant/tests/` pytest suite.
+- `custom_components/jukebox/` the integration, at the repo root because HACS requires it
+  (`hacs.json` beside it). `frontend/jukebox-panel.js` is the panel (vanilla JS, no build step).
+  `home-assistant/` holds its README and the pytest suite (`pytest.ini` puts the repo root on the path).
 - `firmware/` PlatformIO project. `src/` firmware, `include/config.example.h` the
   build-time config template (`include/config.h` is git-ignored), `test/` host tests.
 - `docs/images/` pictures for the top-level README (`wiring.svg`; photo placeholders listed in its README).
@@ -28,7 +29,7 @@ The repo holds no case or 3D models: users build the box into any enclosure.
 Integration (Python 3.13, run from `home-assistant/`):
 - `uv venv --python 3.13 .venv && uv pip install --python .venv/bin/python -r requirements_test.txt`
 - `.venv/bin/python -m pytest -q` runs the suite against a real in-process HA core.
-- `node --check custom_components/jukebox/frontend/jukebox-panel.js` syntax-checks the panel.
+- `node --check ../custom_components/jukebox/frontend/jukebox-panel.js` syntax-checks the panel.
 
 Firmware (run from `firmware/`, PlatformIO at `~/.platformio/penv/bin/pio`):
 - `pio test -e native` host tests for the pure modules.

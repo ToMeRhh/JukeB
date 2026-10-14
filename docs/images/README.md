@@ -4,6 +4,7 @@ Pictures used by the top-level README.
 
 | File | Status | What it should show |
 |---|---|---|
+| `banner.svg` | done | Banner at the top of the README (hand-written SVG; edit directly) |
 | `wiring.svg` | done | ESP32 to RC522 wiring (generated; edit the SVG directly) |
 | `hero.jpg` | **to do** | The finished box on a shelf with a few tagged toys next to it |
 | `panel.png` | **to do** | Screenshot of the Jukebox panel in Home Assistant, Tags tab with a few tags |
