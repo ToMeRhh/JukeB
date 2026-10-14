@@ -1,0 +1,47 @@
+# The commands from CLAUDE.md's "Build and test", run on every push and pull request.
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: home-assistant
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - run: uv venv --python 3.14 .venv
+      - run: uv pip install --python .venv/bin/python -r requirements_test.txt
+      - run: .venv/bin/python -m pytest -q
+      - run: node --check ../custom_components/jukebox/frontend/jukebox-panel.js
+
+  firmware:
+    name: Firmware (native)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firmware
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.platformio
+          key: pio-${{ hashFiles('firmware/platformio.ini') }}
+      - run: pip install platformio
+      - run: pio test -e native

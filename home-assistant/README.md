@@ -11,7 +11,7 @@ fit together.
 
 ## Requirements
 
-- Home Assistant 2026.2 or newer.
+- Home Assistant 2026.3 or newer.
 - A `media_player` entity that can play MP3 files from Home Assistant's media
   folder, such as a Google Cast / Nest speaker.
 - An admin user: the Jukebox panel and its API are admin only.
@@ -134,7 +134,7 @@ The panel's status strip flips to Online and shows the UID under "Last scanned".
 
 ```bash
 cd home-assistant
-uv venv --python 3.13 .venv
+uv venv --python 3.14 .venv
 uv pip install --python .venv/bin/python -r requirements_test.txt
 .venv/bin/python -m pytest -q
 ```

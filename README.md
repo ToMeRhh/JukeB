@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/hacs/integration"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS Custom"></a>
-  <img src="https://img.shields.io/badge/Home%20Assistant-2026.2%2B-18BCF2?logo=homeassistant&logoColor=white" alt="Home Assistant 2026.2+">
+  <img src="https://img.shields.io/badge/Home%20Assistant-2026.3%2B-18BCF2?logo=homeassistant&logoColor=white" alt="Home Assistant 2026.3+">
   <img src="https://img.shields.io/badge/ESP32-RC522-E7352C?logo=espressif&logoColor=white" alt="ESP32 + RC522">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
 </p>
@@ -64,7 +64,7 @@ plays, how loud, and what happens when the tag is removed.
 
 | | Part | Notes |
 |---|---|---|
-| 🏠 | Home Assistant 2026.2 or newer | With [HACS](https://hacs.xyz) for the easy install |
+| 🏠 | Home Assistant 2026.3 or newer | With [HACS](https://hacs.xyz) for the easy install |
 | 🔊 | A speaker in Home Assistant | Any `media_player` that plays MP3s, e.g. a Google Nest Mini |
 | 🧠 | ESP32 DevKit V1 (30-pin, ESP32-WROOM-32) | Other ESP32-WROOM boards work too. Not WROVER: it uses GPIO 16/17. |
 | 📡 | RC522 RFID reader (13.56 MHz) | The common blue board. Some ship with loose header pins you'll need to solder on. |
@@ -194,7 +194,8 @@ More detail, troubleshooting and the update and uninstall steps are in
 | [`custom_components/jukebox/`](custom_components/jukebox) | The Home Assistant integration and its sidebar page (this is what HACS installs) |
 | [`home-assistant/`](home-assistant/) | Integration docs and tests |
 | [`firmware/`](firmware/) | ESP32 firmware (PlatformIO, Arduino) and its tests |
-| [`docs/`](docs/) | Banner, wiring diagram, example drawings and photos |
+| [`docs/`](docs/) | Banner, icon, wiring diagram, example drawings and photos |
+| [`tools/`](tools/) | Helper scripts for maintainers (rendering the integration icon) |
 
 ## Development
 

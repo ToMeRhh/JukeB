@@ -1,0 +1,8 @@
+# Keeps the workflow actions current. The test requirements stay pinned on purpose: they track
+# the minimum Home Assistant in hacs.json, not the latest release.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
