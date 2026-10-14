@@ -17,10 +17,13 @@ has no UI and no state.
 
 - `custom_components/jukebox/` the integration, at the repo root because HACS requires it
   (`hacs.json` beside it). `frontend/jukebox-panel.js` is the panel (vanilla JS, no build step).
+  `brand/` holds the icon PNGs HA 2026.3+ and HACS show, rendered from `docs/images/icon.svg`
+  by `tools/render_icon.py`; never edit the PNGs by hand.
   `home-assistant/` holds its README and the pytest suite (`pytest.ini` puts the repo root on the path).
 - `firmware/` PlatformIO project. `src/` firmware, `include/config.example.h` the
   build-time config template (`include/config.h` is git-ignored), `test/` host tests.
-- `docs/images/` pictures for the top-level README (banner, `wiring.svg`, example drawings; photo placeholders listed in its README).
+- `docs/images/` pictures for the top-level README (banner, icon, `wiring.svg`, example drawings; photo placeholders listed in its README).
+- `tools/` maintainer scripts (`render_icon.py`).
 
 Every top-level folder has a README written for someone building the box; keep
 them in sync with the code. Keep new top-level concerns in their own folder (e.g. `tools/`).
@@ -28,14 +31,24 @@ The repo holds no case or 3D models: users build the box into any enclosure.
 
 ## Build and test
 
-Integration (Python 3.13, run from `home-assistant/`):
-- `uv venv --python 3.13 .venv && uv pip install --python .venv/bin/python -r requirements_test.txt`
+Integration (Python 3.14, run from `home-assistant/`):
+- `uv venv --python 3.14 .venv && uv pip install --python .venv/bin/python -r requirements_test.txt`
 - `.venv/bin/python -m pytest -q` runs the suite against a real in-process HA core.
+  `requirements_test.txt` pins the core to the minimum `homeassistant` in `hacs.json`; move both together.
 - `node --check ../custom_components/jukebox/frontend/jukebox-panel.js` syntax-checks the panel.
 
 Firmware (run from `firmware/`, PlatformIO at `~/.platformio/penv/bin/pio`):
 - `pio test -e native` host tests for the pure modules.
 - `pio run -e esp32dev` compile; `pio run -e esp32dev -t upload` flash; `pio device monitor`.
+
+CI (`.github/workflows/`): `validate.yml` runs the HACS action and hassfest, `tests.yml` the
+commands above. Both must stay green; HACS submission needs a release made after they pass.
+
+## Releasing
+
+Bump `VERSION` in `const.py` and `manifest.json`, merge to `master`, then push tag `vX.Y.Z` from
+`master`. `release.yml` refuses a tag that differs from `manifest.json` (HACS shows the tag as the
+version) and creates the GitHub release with generated notes; add a human summary on GitHub.
 
 ## Conventions
 
