@@ -48,7 +48,8 @@ commands above. Both must stay green; HACS submission needs a release made after
 
 Bump `VERSION` in `const.py` and `manifest.json`, merge to `master`, then push tag `vX.Y.Z` from
 `master`. `release.yml` refuses a tag that differs from `manifest.json` (HACS shows the tag as the
-version) and creates the GitHub release with generated notes; add a human summary on GitHub.
+version) and creates the GitHub release with generated notes and attaches `jukeb.zip`, which HACS installs
+(`zip_release` in `hacs.json`; its download count tracks installs and updates); add a human summary on GitHub.
 
 ## Conventions
 
