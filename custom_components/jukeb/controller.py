@@ -65,6 +65,7 @@ class JukeBController:
         self._store = store
         self._media = media
         self.current_uid: str | None = None
+        self.present_uid: str | None = None  # on the reader now, known or not; cleared on absent
         self.last_scanned: dict[str, Any] | None = None
         self.now_playing: dict[str, Any] | None = None
         self.last_error: str | None = None
@@ -74,6 +75,7 @@ class JukeBController:
 
     async def async_present(self, uid: str) -> bool:
         tag = self._store.get_tag(uid)
+        self.present_uid = uid
         self.last_scanned = {"uid": uid, "known": tag is not None, "at": dt_util.utcnow().isoformat()}
         if tag is None:
             return False
@@ -88,6 +90,8 @@ class JukeBController:
         return True
 
     async def async_absent(self, uid: str) -> None:
+        if uid == self.present_uid:
+            self.present_uid = None
         if uid != self.current_uid:
             return
         self._cancel_grace()
@@ -153,6 +157,7 @@ class JukeBController:
         now_local = dt_util.now()
         return {
             "current_uid": self.current_uid,
+            "present_uid": self.present_uid,
             "last_scanned": self.last_scanned,
             "now_playing": self.now_playing,
             "last_error": self.last_error,

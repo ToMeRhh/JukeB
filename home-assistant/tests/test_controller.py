@@ -173,6 +173,7 @@ async def test_play_from_panel_does_not_change_current(hass, ctl, services):
 async def test_snapshot(hass, ctl, services):
     assert ctl.snapshot() == {
         "current_uid": None,
+        "present_uid": None,
         "last_scanned": None,
         "now_playing": None,
         "last_error": None,
@@ -300,3 +301,30 @@ async def test_grace_zero_does_not_block_on_the_service(hass, ctl, services):
     assert ctl.current_uid is None
     release.set()
     await hass.async_block_till_done()
+
+
+async def test_present_uid_tracks_the_object_on_the_reader(hass, ctl, services):
+    # Every object counts, known or not, active or not: the panel shows what is on the reader.
+    await ctl.async_present("ZZ:99")
+    assert ctl.present_uid == "ZZ:99"
+    await ctl.async_absent("ZZ:99")
+    assert ctl.present_uid is None
+
+    await ctl._store.async_set_settings({"enabled": False})
+    await ctl.async_present("AA:01")
+    assert ctl.snapshot()["present_uid"] == "AA:01"
+
+
+async def test_present_uid_clears_on_removal_even_during_grace(hass, ctl, services):
+    await ctl.async_present("AA:01")
+    await hass.async_block_till_done()
+    await ctl.async_absent("AA:01")
+    assert ctl.present_uid is None  # removed now, though the pause waits for the grace period
+    assert ctl.current_uid == "AA:01"
+
+
+async def test_present_uid_ignores_absent_for_another_object(hass, ctl, services):
+    await ctl.async_present("AA:01")
+    await ctl.async_present("BB:02")
+    await ctl.async_absent("AA:01")  # stale absent for the object swapped out
+    assert ctl.present_uid == "BB:02"

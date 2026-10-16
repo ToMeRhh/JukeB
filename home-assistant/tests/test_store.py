@@ -162,3 +162,17 @@ async def test_window_validation(hass):
     # overnight windows are fine
     s = await store.async_set_settings({"active_from": "19:00", "active_until": "07:00"})
     assert s.active_from == "19:00" and s.active_until == "07:00"
+
+
+async def test_rename_media_updates_tags(hass, hass_storage):
+    store = await make_store(hass)
+    _, one = await store.async_set_tag("01", "One", {"type": "file", "path": "a.mp3"}, lambda p: True)
+    await store.async_set_tag("02", "Two", {"type": "file", "path": "a.mp3"}, lambda p: True)
+    await store.async_set_tag("03", "Three", {"type": "file", "path": "b.mp3"}, lambda p: True)
+    assert await store.async_rename_media("a.mp3", "c.mp3") == ["01", "02"]
+    assert store.get_tag("01").media_path == "c.mp3"
+    assert store.get_tag("01").added_at == one.added_at and store.get_tag("01").name == "One"
+    assert store.get_tag("02").media_path == "c.mp3"
+    assert store.get_tag("03").media_path == "b.mp3"
+    assert hass_storage["jukeb"]["data"]["tags"]["02"]["media"]["path"] == "c.mp3"
+    assert await store.async_rename_media("zzz.mp3", "y.mp3") == []

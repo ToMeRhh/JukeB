@@ -1,5 +1,5 @@
 import pytest
-from pytest_homeassistant_custom_component.common import async_mock_service
+from pytest_homeassistant_custom_component.common import async_fire_time_changed, async_mock_service
 
 from custom_components.jukeb.const import DOMAIN
 
@@ -82,6 +82,26 @@ async def test_missing_uid_is_400(hass, client):
         status, body = await post(client, {"event": event, "uid": "  "})
         assert (status, body) == (400, {"ok": False, "error": "uid required"})
     assert hass.data[DOMAIN].box.last_seen is None  # rejected events never count as contact
+
+
+async def test_reboot_clears_present_uid(hass, client):
+    # A box that resets never sends absent for the object it had; its boot heartbeat comes first.
+    data = hass.data[DOMAIN]
+    await post(client, {"event": "heartbeat", "uptime_s": 500, "rssi": -50})
+    await post(client, {"event": "present", "uid": "AA:01"})
+    await post(client, {"event": "heartbeat", "uptime_s": 530, "rssi": -50})
+    assert data.controller.present_uid == "AA:01"
+    await post(client, {"event": "heartbeat", "uptime_s": 0, "rssi": -50})
+    assert data.controller.present_uid is None
+
+
+async def test_offline_clears_present_uid(hass, client, freezer):
+    data = hass.data[DOMAIN]
+    await post(client, {"event": "present", "uid": "AA:01"})
+    freezer.tick(91)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert data.controller.present_uid is None
 
 
 async def test_get_is_rejected(client):

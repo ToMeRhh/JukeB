@@ -156,7 +156,8 @@ In the **JukeB** page:
 1. **Media** tab: drag in your MP3 files.
 2. Put a tag on the reader. The ESP32's LED blinks three times ("I don't know this one") and the
    **Tags** tab shows the tag under *Last scanned*.
-3. Click **Use this UID**, give it a name, pick a track and click **Add tag**.
+3. Click **Use this UID**, give it a name, click **Choose…** to pick a track (you can preview or
+   upload one right there) and click **Add tag**.
 4. Take the tag away and put it back. The LED blinks once and the track plays. 🎉
 
 ### 5. Build your device

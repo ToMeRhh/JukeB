@@ -28,6 +28,11 @@ const STYLE = `
   .row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
   .uid { font-family: monospace; font-size: 15px; padding: 2px 6px; border-radius: 4px; background: var(--secondary-background-color, #f3f3f3); }
   .uid.fresh { outline: 2px solid var(--primary-color); }
+  .uid.present { outline: 2px solid var(--primary-color); background: var(--secondary-background-color, #e3f2fd); background: color-mix(in srgb, var(--primary-color) 15%, transparent); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary-color); animation: pulse 1.2s ease-in-out infinite; }
+  .dot[hidden] { display: none; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  tr.present td { background: var(--secondary-background-color, #e3f2fd); background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
   .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--secondary-background-color, #eee); }
   .badge.new { background: var(--primary-color); color: var(--text-primary-color, #fff); }
   table { width: 100%; border-collapse: collapse; }
@@ -73,6 +78,28 @@ const STYLE = `
   audio { width: 100%; margin: 4px 0 12px; }
   .hours { display: flex; gap: 8px; align-items: center; }
   .hours input { width: auto; }
+  .filefield { display: flex; gap: 8px; }
+  .filefield input { flex: 1; cursor: pointer; }
+  dialog { border: none; border-radius: var(--ha-card-border-radius, 12px); padding: 0; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+    background: var(--card-background-color, #fff); color: var(--primary-text-color); box-shadow: 0 8px 32px rgba(0,0,0,.3); }
+  dialog::backdrop { background: rgba(0,0,0,.4); }
+  dialog form { display: flex; flex-direction: column; max-height: calc(100vh - 32px); }
+  .dlg-head { padding: 16px 16px 8px; }
+  .dlg-head h2 { font-size: 18px; font-weight: 500; margin: 0 0 8px; }
+  .dlg-list { overflow-y: auto; min-height: 120px; max-height: 50vh; border-top: 1px solid var(--divider-color, #e0e0e0); border-bottom: 1px solid var(--divider-color, #e0e0e0); }
+  .dlg-list.over { outline: 2px dashed var(--primary-color); outline-offset: -4px; }
+  .pick { display: flex; align-items: center; gap: 8px; padding: 6px 16px; cursor: pointer; }
+  .pick:hover { background: var(--secondary-background-color, #f5f5f5); }
+  .pick[aria-selected=true] { background: var(--secondary-background-color, #e3f2fd); background: color-mix(in srgb, var(--primary-color) 15%, transparent); }
+  .pick .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick .size { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; }
+  .dlg-empty { padding: 16px; }
+  .dlg-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 16px 16px; }
+  .dlg-foot .spacer { flex: 1; }
+  #pickUploads:not(:empty) { padding: 0 16px 8px; }
+  #pickMsg:empty { display: none; }
+  .rename { display: flex; align-items: center; gap: 4px; }
+  .rename input { padding: 4px 6px; }
 `;
 
 class JukeBPanel extends HTMLElement {
@@ -86,12 +113,19 @@ class JukeBPanel extends HTMLElement {
     this._files = [];
     this._settings = null;
     this._editing = null;
+    this._formFile = "";
+    this._pickSel = null;
+    this._renaming = null; // media file being renamed inline
+    this._renameDraft = "";
+    this._renameBusy = false;
     this._lastScanUid = null;
     this._lastScanAt = null;
     this._playerCount = -1;
     this._previewPath = null;
     this._previewPlaying = false;
+    this._previewSeq = 0; // bumped by every stop: a preview still resolving its URL must not start
     this._rendered = false;
+    this._onLocation = () => { if (!this._onOwnPage()) this._stopPreview(); };
   }
 
   set hass(hass) {
@@ -106,12 +140,24 @@ class JukeBPanel extends HTMLElement {
   }
 
   connectedCallback() {
+    // HA may keep a panel alive while another page shows; its router fires location-changed.
+    window.addEventListener("location-changed", this._onLocation);
+    window.addEventListener("popstate", this._onLocation);
     if (this._hass) this._start();
   }
 
   disconnectedCallback() {
     clearInterval(this._timer);
     this._timer = null;
+    window.removeEventListener("location-changed", this._onLocation);
+    window.removeEventListener("popstate", this._onLocation);
+    this._stopPreview(); // a detached <audio> keeps playing
+    if (this.$("picker")?.open) this.$("picker").close();
+  }
+
+  _onOwnPage() {
+    const path = this.panel?.url_path || "jukeb";
+    return location.pathname === `/${path}` || location.pathname.startsWith(`/${path}/`);
   }
 
   async _start() {
@@ -174,7 +220,8 @@ class JukeBPanel extends HTMLElement {
   async _refreshFiles() {
     this._files = (await this._ws({ type: "jukeb/media/list" })).files;
     this._renderFiles();
-    this._renderFileOptions();
+    this._renderFileField();
+    this._renderPicker();
   }
 
   async _refreshSettings() {
@@ -204,7 +251,7 @@ class JukeBPanel extends HTMLElement {
       </div>
 
       <div class="tabs" role="tablist">
-        <button role="tab" data-tab="tags">Tags</button>
+        <button role="tab" data-tab="tags">Tags <span id="tabDot" class="dot" title="An object is on the reader" hidden></span></button>
         <button role="tab" data-tab="media">Media</button>
         <button role="tab" data-tab="settings">Settings</button>
       </div>
@@ -213,8 +260,9 @@ class JukeBPanel extends HTMLElement {
       <div class="card">
         <h2>Register an object</h2>
         <div class="row">
-          <span class="muted">Last scanned:</span>
+          <span class="muted" id="scanLabel">Last scanned:</span>
           <span id="scanUid" class="uid">none yet</span>
+          <span id="scanDot" class="dot" hidden></span>
           <span id="scanBadge" class="badge" hidden></span>
           <button id="btnUse" disabled>Use this UID</button>
         </div>
@@ -228,7 +276,9 @@ class JukeBPanel extends HTMLElement {
           <div class="grid">
             <div><label>UID</label><input id="fUid" placeholder="04:A3:7F:12"></div>
             <div><label>Name</label><input id="fName" placeholder="Blue dinosaur"></div>
-            <div><label>File</label><select id="fFile"></select></div>
+            <div><label>File</label>
+              <div class="filefield"><input id="fFile" readonly placeholder="No file chosen" title="Choose a file">
+              <button id="btnChooseFile" type="button">Choose…</button></div></div>
           </div>
           <div class="row" style="margin-top:12px">
             <button id="btnSaveTag" class="primary">Add tag</button>
@@ -237,6 +287,24 @@ class JukeBPanel extends HTMLElement {
           <div id="tagMsg" class="msg"></div>
         </div>
       </div>
+      <dialog id="picker" aria-labelledby="pickTitle">
+        <form method="dialog">
+          <div class="dlg-head">
+            <h2 id="pickTitle">Choose a file</h2>
+            <input id="pickFilter" type="search" placeholder="Filter files" autocomplete="off">
+          </div>
+          <div id="pickUploads"></div>
+          <div id="pickList" class="dlg-list" role="listbox" aria-labelledby="pickTitle"></div>
+          <div class="msg" id="pickMsg" style="padding:0 16px"></div>
+          <div class="dlg-foot">
+            <button id="pickUpload" type="button">Upload MP3…</button>
+            <input id="pickFileInput" type="file" accept=".mp3,audio/mpeg" multiple hidden>
+            <span class="spacer"></span>
+            <button value="cancel">Cancel</button>
+            <button id="pickSelect" value="select" class="primary" disabled>Select</button>
+          </div>
+        </form>
+      </dialog>
       </section>
 
       <section data-panel="media" hidden>
@@ -298,6 +366,9 @@ class JukeBPanel extends HTMLElement {
       }
     };
     this.$("btnSaveTag").onclick = () => this._saveTag();
+    this.$("btnChooseFile").onclick = () => this._openPicker();
+    this.$("fFile").onclick = () => this._openPicker();
+    this._bindPicker();
     this.$("btnCancelTag").onclick = () => this._resetTagForm();
     this.$("tagRows").onclick = (ev) => {
       const btn = ev.target.closest("button[data-act]");
@@ -319,10 +390,23 @@ class JukeBPanel extends HTMLElement {
       if (btn.dataset.act === "play") this._preview(btn.dataset.path);
       if (btn.dataset.act === "pause") this.$("preview").pause();
       if (btn.dataset.act === "del") this._deleteFile(btn.dataset.path);
+      if (btn.dataset.act === "rename") this._startRename(btn.dataset.path);
+      if (btn.dataset.act === "rn-save") this._saveRename();
+      if (btn.dataset.act === "rn-cancel") this._cancelRename();
+    };
+    this.$("fileRows").oninput = (ev) => { if (ev.target.id === "rnInput") this._renameDraft = ev.target.value; };
+    this.$("fileRows").onkeydown = (ev) => {
+      if (ev.target.id !== "rnInput") return;
+      if (ev.key === "Enter") { ev.preventDefault(); this._saveRename(); }
+      if (ev.key === "Escape") { ev.preventDefault(); this._cancelRename(); }
     };
     const audio = this.$("preview");
     for (const evName of ["play", "pause", "ended", "emptied"]) {
-      audio.addEventListener(evName, () => { this._previewPlaying = !audio.paused && !audio.ended; this._renderFiles(); });
+      audio.addEventListener(evName, () => {
+        this._previewPlaying = !audio.paused && !audio.ended;
+        this._renderFiles();
+        this._renderPicker();
+      });
     }
     this.$("enabledToggle").onchange = (ev) => this._setEnabled(ev.target.checked);
     this.$("btnClearHours").onclick = () => { this.$("sFrom").value = ""; this.$("sUntil").value = ""; };
@@ -342,6 +426,7 @@ class JukeBPanel extends HTMLElement {
   }
 
   _showTab(name) {
+    this._stopPreview(); // previews belong to the tab they started on
     this.shadowRoot.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
     this.shadowRoot.querySelectorAll("section[data-panel]").forEach((sec) => { sec.hidden = sec.dataset.panel !== name; });
     try { localStorage.setItem(TAB_KEY, name); } catch (_) { /* ignore */ }
@@ -381,10 +466,22 @@ class JukeBPanel extends HTMLElement {
     toggle.disabled = false;
   }
 
+  // The object on the reader right now; a box that went offline cannot report a removal.
+  _presentUid() {
+    return this._status?.online ? this._status.present_uid || null : null;
+  }
+
   _renderScan() {
     const ls = this._status?.last_scanned;
     const uidEl = this.$("scanUid");
     const badge = this.$("scanBadge");
+    const present = this._presentUid();
+    const onReader = !!ls && present === ls.uid;
+    this.$("scanLabel").textContent = onReader ? "On the reader:" : "Last scanned:";
+    this.$("scanDot").hidden = !onReader;
+    this.$("tabDot").hidden = !present;
+    uidEl.classList.toggle("present", onReader);
+    this._markPresentRow(present);
     if (!ls) { uidEl.textContent = "none yet"; badge.hidden = true; this.$("btnUse").disabled = true; return; }
     const known = !!this._tags[ls.uid];
     uidEl.textContent = ls.uid;
@@ -400,6 +497,14 @@ class JukeBPanel extends HTMLElement {
     }
   }
 
+  _markPresentRow(present) {
+    this.$("tagRows").querySelectorAll("tr[data-uid]").forEach((tr) => {
+      const on = tr.dataset.uid === present;
+      tr.classList.toggle("present", on);
+      tr.querySelector(".dot").hidden = !on;
+    });
+  }
+
   // ---------- tags ----------
 
   _renderTags() {
@@ -407,7 +512,7 @@ class JukeBPanel extends HTMLElement {
     this.$("tagRows").innerHTML = uids.length
       ? uids.map((uid) => {
           const t = this._tags[uid];
-          return `<tr><td>${esc(t.name)}</td><td><span class="uid">${esc(uid)}</span></td><td>${esc(t.media.path)}</td>
+          return `<tr data-uid="${esc(uid)}"><td>${esc(t.name)} <span class="dot" title="On the reader" hidden></span></td><td><span class="uid">${esc(uid)}</span></td><td>${esc(t.media.path)}</td>
             <td class="actions"><button data-act="play" data-uid="${esc(uid)}">Play</button>
             <button data-act="edit" data-uid="${esc(uid)}">Edit</button>
             <button data-act="del" data-uid="${esc(uid)}" class="danger">Delete</button></td></tr>`;
@@ -416,13 +521,121 @@ class JukeBPanel extends HTMLElement {
     this._renderScan();
   }
 
-  _renderFileOptions() {
-    const sel = this.$("fFile");
-    const current = sel.value;
-    sel.innerHTML = this._files.length
-      ? this._files.map((f) => `<option value="${esc(f.path)}">${esc(f.path)}</option>`).join("")
-      : `<option value="">(upload an MP3 first)</option>`;
-    if (current && this._files.some((f) => f.path === current)) sel.value = current;
+  _setFormFile(path) {
+    this._formFile = path || "";
+    this._renderFileField();
+  }
+
+  _renderFileField() {
+    const missing = this._formFile && !this._files.some((f) => f.path === this._formFile);
+    const el = this.$("fFile");
+    el.value = this._formFile ? `${this._formFile}${missing ? " (missing)" : ""}` : "";
+    el.placeholder = this._files.length ? "No file chosen" : "Upload an MP3 first";
+  }
+
+  // ---------- file picker ----------
+
+  _bindPicker() {
+    const dlg = this.$("picker");
+    const list = this.$("pickList");
+    const choose = (path) => { this._pickSel = path; dlg.close("select"); };
+    this.$("pickFilter").oninput = () => this._renderPicker();
+    this.$("pickFilter").onkeydown = (ev) => {
+      // Enter would submit the form with its first button (Cancel): pick the only match instead.
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        const rows = list.querySelectorAll(".pick");
+        if (rows.length === 1) choose(rows[0].dataset.path);
+      }
+      if (ev.key === "ArrowDown") { ev.preventDefault(); list.querySelector(".pick")?.focus(); }
+    };
+    list.onclick = (ev) => {
+      const btn = ev.target.closest("button[data-act]");
+      if (btn) {
+        if (btn.dataset.act === "play") this._preview(btn.dataset.path, "pickMsg");
+        if (btn.dataset.act === "pause") this.$("preview").pause();
+        return;
+      }
+      const row = ev.target.closest(".pick");
+      if (row) { this._pickSel = row.dataset.path; this._renderPicker(); }
+    };
+    list.ondblclick = (ev) => {
+      const row = ev.target.closest(".pick");
+      if (row && !ev.target.closest("button")) choose(row.dataset.path);
+    };
+    list.onkeydown = (ev) => {
+      const row = ev.target.closest(".pick");
+      if (!row || ev.target !== row) return;
+      if (ev.key === "Enter") { ev.preventDefault(); choose(row.dataset.path); }
+      if (ev.key === " ") { ev.preventDefault(); this._pickSel = row.dataset.path; this._renderPicker(); this._revealPick(); }
+      if (ev.key === "ArrowDown") { ev.preventDefault(); row.nextElementSibling?.focus(); }
+      if (ev.key === "ArrowUp") { ev.preventDefault(); (row.previousElementSibling || this.$("pickFilter")).focus(); }
+    };
+    list.ondragover = (ev) => { ev.preventDefault(); list.classList.add("over"); };
+    list.ondragleave = () => list.classList.remove("over");
+    list.ondrop = (ev) => { ev.preventDefault(); list.classList.remove("over"); this._pickerUpload(ev.dataTransfer.files); };
+    this.$("pickUpload").onclick = () => this.$("pickFileInput").click();
+    this.$("pickFileInput").onchange = (ev) => { this._pickerUpload(ev.target.files); ev.target.value = ""; };
+    dlg.addEventListener("close", () => {
+      this._stopPreview();
+      if (dlg.returnValue === "select" && this._pickSel) this._setFormFile(this._pickSel);
+      this.$("btnChooseFile").focus();
+    });
+  }
+
+  _openPicker() {
+    const dlg = this.$("picker");
+    if (dlg.open) return;
+    this._pickSel = this._files.some((f) => f.path === this._formFile) ? this._formFile : null;
+    this.$("pickFilter").value = "";
+    this.$("pickUploads").innerHTML = "";
+    this._say("pickMsg", "", true);
+    dlg.returnValue = "";
+    dlg.showModal();
+    this._renderPicker();
+    this._revealPick();
+  }
+
+  _revealPick() {
+    const row = this.$("pickList").querySelector('.pick[aria-selected="true"]');
+    if (row) { row.scrollIntoView({ block: "nearest" }); row.focus(); }
+    else this.$("pickFilter").focus();
+  }
+
+  _renderPicker() {
+    const dlg = this.$("picker");
+    if (!dlg?.open) return;
+    const q = this.$("pickFilter").value.trim().toLowerCase();
+    const files = this._files.filter((f) => !q || f.path.toLowerCase().includes(q));
+    // Re-rendering (e.g. Play turning into Pause) must not drop keyboard focus.
+    const active = this.shadowRoot.activeElement;
+    const focusRow = this.$("pickList").contains(active) ? active.closest(".pick") : null;
+    const focus = focusRow && { path: focusRow.dataset.path, button: active.tagName === "BUTTON" };
+    this.$("pickList").innerHTML = files.length
+      ? files.map((f) => {
+          const sel = f.path === this._pickSel;
+          const playing = this._previewPlaying && f.path === this._previewPath;
+          const ctl = playing
+            ? `<button type="button" data-act="pause" data-path="${esc(f.path)}" class="primary">Pause</button>`
+            : `<button type="button" data-act="play" data-path="${esc(f.path)}">Play</button>`;
+          return `<div class="pick" role="option" tabindex="0" aria-selected="${sel}" data-path="${esc(f.path)}">
+            <span class="name" title="${esc(f.path)}">${esc(f.path)}</span><span class="size">${fmtSize(f.size)}</span>${ctl}</div>`;
+        }).join("")
+      : `<div class="dlg-empty muted">${this._files.length ? "No files match." : "No files yet. Upload an MP3 to get started."}</div>`;
+    this.$("pickSelect").disabled = !this._pickSel || !this._files.some((f) => f.path === this._pickSel);
+    if (focus) {
+      const row = [...this.$("pickList").querySelectorAll(".pick")].find((r) => r.dataset.path === focus.path);
+      (focus.button ? row?.querySelector("button") : row)?.focus();
+    }
+  }
+
+  async _pickerUpload(fileList) {
+    const uploaded = await this._uploadFiles(fileList, "pickUploads");
+    if (!uploaded.length) return;
+    this._pickSel = uploaded[uploaded.length - 1];
+    this.$("pickFilter").value = "";
+    this._renderPicker();
+    this._revealPick();
   }
 
   _startEdit(uid) {
@@ -430,7 +643,7 @@ class JukeBPanel extends HTMLElement {
     this._editing = uid;
     this.$("fUid").value = uid;
     this.$("fName").value = t.name;
-    this.$("fFile").value = t.media.path;
+    this._setFormFile(t.media.path);
     this.$("btnSaveTag").textContent = "Save changes";
     this.$("btnCancelTag").hidden = false;
     this._say("tagMsg", "", true);
@@ -441,6 +654,7 @@ class JukeBPanel extends HTMLElement {
     this._editing = null;
     this.$("fUid").value = "";
     this.$("fName").value = "";
+    this._setFormFile("");
     this.$("btnSaveTag").textContent = "Add tag";
     this.$("btnCancelTag").hidden = true;
     this._say("tagMsg", "", true);
@@ -449,10 +663,10 @@ class JukeBPanel extends HTMLElement {
   async _saveTag() {
     const uid = this.$("fUid").value.trim();
     const name = this.$("fName").value.trim();
-    const path = this.$("fFile").value;
+    const path = this._formFile;
     if (!uid) return this._say("tagMsg", "UID is required", false);
     if (!name) return this._say("tagMsg", "Name is required", false);
-    if (!path) return this._say("tagMsg", "Upload an MP3 first, then pick it here", false);
+    if (!path) return this._say("tagMsg", "Choose a file (you can upload one in the file dialog)", false);
     try {
       const r = await this._ws({ type: "jukeb/tags/set", uid, name, media: { type: "file", path } });
       await this._refreshTags();
@@ -488,53 +702,119 @@ class JukeBPanel extends HTMLElement {
   // ---------- media ----------
 
   _renderFiles() {
+    if (this._renaming && !this._files.some((f) => f.path === this._renaming)) this._renaming = null;
+    const active = this.shadowRoot.activeElement;
+    const caret = active?.id === "rnInput" ? [active.selectionStart, active.selectionEnd] : null;
     this.$("fileRows").innerHTML = this._files.length
       ? this._files.map((f) => {
+          if (f.path === this._renaming) {
+            return `<tr data-path="${esc(f.path)}"><td><div class="rename"><input id="rnInput" aria-label="New name for ${esc(f.path)}"
+              value="${esc(this._renameDraft)}" autocomplete="off" spellcheck="false"><span class="muted">.mp3</span></div></td><td>${fmtSize(f.size)}</td>
+              <td class="actions"><button data-act="rn-save" class="primary">Save</button> <button data-act="rn-cancel">Cancel</button></td></tr>`;
+          }
           const playing = this._previewPlaying && f.path === this._previewPath;
           const ctl = playing
             ? `<button data-act="pause" data-path="${esc(f.path)}" class="primary">Pause</button>`
             : `<button data-act="play" data-path="${esc(f.path)}">Play</button>`;
-          return `<tr><td>${esc(f.path)}</td><td>${fmtSize(f.size)}</td>
-            <td class="actions">${ctl} <button data-act="del" data-path="${esc(f.path)}" class="danger">Delete</button></td></tr>`;
+          return `<tr data-path="${esc(f.path)}"><td>${esc(f.path)}</td><td>${fmtSize(f.size)}</td>
+            <td class="actions">${ctl} <button data-act="rename" data-path="${esc(f.path)}">Rename</button>
+            <button data-act="del" data-path="${esc(f.path)}" class="danger">Delete</button></td></tr>`;
         }).join("")
       : `<tr><td colspan="3" class="muted">No files yet.</td></tr>`;
+    const input = caret && this.$("rnInput");
+    if (input) { input.focus(); input.setSelectionRange(...caret); }
   }
 
-  async _preview(path) {
+  _startRename(path) {
+    this._renaming = path;
+    this._renameDraft = path.replace(/\.mp3$/i, "");
+    this._renderFiles();
+    const input = this.$("rnInput");
+    input.focus();
+    input.select();
+  }
+
+  _cancelRename() {
+    this._renaming = null;
+    this._renderFiles();
+  }
+
+  async _saveRename() {
+    const path = this._renaming;
+    if (!path || this._renameBusy) return;
+    const stem = this._renameDraft.trim().replace(/\.mp3$/i, "");
+    if (!stem) return this._say("fileMsg", "Name is required", false);
+    const newName = `${stem}.mp3`;
+    if (newName === path) return this._cancelRename();
+    this._renameBusy = true;
+    try {
+      const r = await this._ws({ type: "jukeb/media/rename", path, new_name: newName });
+      // The preview's signed URL points at the old name.
+      if (path === this._previewPath) { this._stopPreview(); const a = this.$("preview"); a.removeAttribute("src"); a.load(); this._previewPath = null; }
+      if (this._formFile === path) this._formFile = r.path;
+      this._renaming = null;
+      await Promise.all([this._refreshFiles(), this._refreshTags()]);
+      const n = r.tags.length;
+      const names = r.tags.map((uid) => this._tags[uid]?.name || uid).join(", ");
+      this._say("fileMsg", `Renamed ${path} to ${r.path}${n ? ` and updated ${n === 1 ? "tag" : "tags"} ${names}` : ""}`, true);
+    } catch (e) {
+      this._say("fileMsg", e.message || String(e), false);
+    } finally {
+      this._renameBusy = false;
+    }
+  }
+
+  _stopPreview() {
+    this._previewSeq++;
+    const audio = this.$("preview");
+    if (!audio || audio.paused) return;
+    audio.pause();
+    audio.currentTime = 0;
+  }
+
+  async _preview(path, msgId = "fileMsg") {
     const audio = this.$("preview");
     if (path === this._previewPath && audio.getAttribute("src")) { audio.play(); return; }
     const file = this._files.find((f) => f.path === path);
     if (!file) return;
+    const seq = this._previewSeq;
     try {
       // HA signs a short-lived URL for the file; the browser streams it directly.
       const r = await this._ws({ type: "media_source/resolve_media", media_content_id: file.uri });
+      if (seq !== this._previewSeq) return;
       this._previewPath = path;
       audio.src = r.url;
       await audio.play();
-      this._say("fileMsg", "", true);
+      this._say(msgId, "", true);
     } catch (e) {
-      this._say("fileMsg", `Cannot preview ${path}: ${e.message || e}`, false);
+      this._say(msgId, `Cannot preview ${path}: ${e.message || e}`, false);
     }
   }
 
-  async _uploadFiles(fileList) {
+  // Returns the stored names of the files that uploaded.
+  async _uploadFiles(fileList, hostId = "uploads") {
     const files = Array.from(fileList || []);
-    if (!files.length) return;
+    if (!files.length) return [];
     const existing = new Set(this._files.map((f) => f.path));
     const dupes = files.filter((f) => existing.has(f.name)).map((f) => f.name);
-    if (dupes.length && !confirm(`These files already exist and will be replaced:\n${dupes.join("\n")}\n\nContinue?`)) return;
-    for (const file of files) await this._uploadOne(file);
+    if (dupes.length && !confirm(`These files already exist and will be replaced:\n${dupes.join("\n")}\n\nContinue?`)) return [];
+    const saved = [];
+    for (const file of files) {
+      const path = await this._uploadOne(file, hostId);
+      if (path) saved.push(path);
+    }
     await this._refreshFiles();
+    return saved;
   }
 
-  async _uploadOne(file) {
+  async _uploadOne(file, hostId) {
     // HA access tokens expire after 30 min and are refreshed lazily; XHR bypasses fetchWithAuth.
     if (this._hass.auth.expired) {
       try { await this._hass.auth.refreshAccessToken(); } catch (_) { /* the request below will report 401 */ }
     }
     const box = document.createElement("div");
     box.innerHTML = `<div class="row"><span>${esc(file.name)}</span><span class="muted up-state">0%</span></div><progress max="100" value="0"></progress>`;
-    this.$("uploads").appendChild(box);
+    this.$(hostId).appendChild(box);
     const bar = box.querySelector("progress");
     const state = box.querySelector(".up-state");
     const form = new FormData();
@@ -551,9 +831,9 @@ class JukeBPanel extends HTMLElement {
         try { body = JSON.parse(xhr.responseText); } catch (_) { /* ignore */ }
         if (xhr.status === 200) { state.textContent = "done"; state.className = "ok up-state"; setTimeout(() => box.remove(), 2000); }
         else { state.textContent = body.error || `HTTP ${xhr.status}`; state.className = "bad up-state"; }
-        resolve();
+        resolve(xhr.status === 200 ? body.path || file.name : null);
       };
-      xhr.onerror = () => { state.textContent = "upload failed"; state.className = "bad up-state"; resolve(); };
+      xhr.onerror = () => { state.textContent = "upload failed"; state.className = "bad up-state"; resolve(null); };
       xhr.send(form);
     });
   }

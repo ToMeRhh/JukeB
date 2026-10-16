@@ -72,3 +72,41 @@ async def test_exists_and_delete_reject_traversal(hass, hass_media_dir):
     with pytest.raises(MediaError):
         await lib.async_delete("../secret.mp3")
     assert (hass_media_dir / "secret.mp3").exists()
+
+
+async def test_rename(hass, hass_media_dir):
+    lib = MediaLibrary(hass)
+    await lib.async_setup()
+    await lib.async_save("dino.mp3", b"ID3dino")
+    await lib.async_save("cat.mp3", b"ID3cat")
+    assert await lib.async_rename("dino.mp3", " Blue Dino.mp3 ") == "Blue Dino.mp3"
+    assert not lib.exists("dino.mp3")
+    assert (hass_media_dir / "jukeb" / "Blue Dino.mp3").read_bytes() == b"ID3dino"
+    # unicode is kept and normalised like uploads
+    assert await lib.async_rename("Blue Dino.mp3", "Café.mp3") == "Café.mp3"
+    # a case-only change is a real rename, not a clash with itself
+    assert await lib.async_rename("cat.mp3", "Cat.mp3") == "Cat.mp3"
+    assert [f["path"] for f in await lib.async_list()] == ["Café.mp3", "Cat.mp3"]
+
+
+async def test_rename_rejects(hass, hass_media_dir):
+    lib = MediaLibrary(hass)
+    await lib.async_setup()
+    await lib.async_save("dino.mp3", b"d")
+    await lib.async_save("cat.mp3", b"c")
+    (hass_media_dir / "secret.mp3").write_bytes(b"x")
+    with pytest.raises(MediaError, match="cat.mp3 already exists"):
+        await lib.async_rename("dino.mp3", "cat.mp3")
+    with pytest.raises(MediaError, match="already has that name"):
+        await lib.async_rename("dino.mp3", "dino.mp3")
+    with pytest.raises(MediaError, match="file not found"):
+        await lib.async_rename("nope.mp3", "x.mp3")
+    with pytest.raises(MediaError, match="only .mp3"):
+        await lib.async_rename("dino.mp3", "dino.wav")
+    with pytest.raises(MediaError, match="invalid file name"):
+        await lib.async_rename("../secret.mp3", "x.mp3")
+    # separators in the new name are stripped, never followed
+    assert await lib.async_rename("dino.mp3", "../../dino2.mp3") == "dino2.mp3"
+    assert (hass_media_dir / "jukeb" / "dino2.mp3").read_bytes() == b"d"
+    assert (hass_media_dir / "jukeb" / "cat.mp3").read_bytes() == b"c"
+    assert (hass_media_dir / "secret.mp3").exists()

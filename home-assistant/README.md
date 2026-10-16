@@ -82,15 +82,23 @@ The status bar at the top has a fixed layout: the Enabled toggle, Box (Online/Of
 and last seen), Signal, Firmware, Playback (Active, or Inactive with the reason: off or
 outside the active hours), Playing, and an error line. Below it are three tabs.
 
-- **Tags** — *Register an object* shows the last scanned UID. Tap an object on
-  the box, press *Use this UID*, give it a name, pick a file, *Add tag*. The
-  table lists every tag with Play (on the speaker), Edit and Delete. Scans are
-  recorded even while JukeB is inactive, so you can register tags any time.
+- **Tags** — *Register an object* shows the last scanned UID. While an object
+  sits on the reader it reads *On the reader*, its tag row is highlighted and the
+  Tags tab shows a pulsing dot, until the object is removed (or the box restarts or goes
+  offline). Tap an object on the box, press *Use this UID*, give it a name,
+  press *Choose…* to pick a file, *Add tag*. The file dialog lists the library
+  with a filter, previews any file in the browser, and uploads new MP3s (the
+  upload is selected for you). The table lists every tag with Play (on the
+  speaker), Edit and Delete. Scans are recorded even while JukeB is inactive, so
+  you can register tags any time.
 - **Media** — drop MP3 files to upload (max 50 MB each; any file name works,
   including non-Latin scripts). Files are stored in `<media folder>/jukeb/` and
   play as `media-source://media_source/<media dir>/jukeb/<file>`. Play previews
   the file in your browser through the player above the list; the speaker is not
-  involved. Deleting a file that a tag uses is refused.
+  involved, and the preview stops when you switch tabs or leave the page.
+  *Rename* edits a file's name in place (Enter saves, Esc cancels); tags that
+  use the file are updated to the new name. Deleting a file that a tag uses is
+  refused.
 - **Settings** — speaker, an optional volume to set before each play (untick to
   leave the speaker's volume alone), what happens when the object is removed
   (keep playing / pause / stop), the grace period that ignores brief lifts, and
