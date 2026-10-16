@@ -28,6 +28,11 @@ const STYLE = `
   .row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
   .uid { font-family: monospace; font-size: 15px; padding: 2px 6px; border-radius: 4px; background: var(--secondary-background-color, #f3f3f3); }
   .uid.fresh { outline: 2px solid var(--primary-color); }
+  .uid.present { outline: 2px solid var(--primary-color); background: color-mix(in srgb, var(--primary-color) 15%, transparent); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary-color); animation: pulse 1.2s ease-in-out infinite; }
+  .dot[hidden] { display: none; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  tr.present td { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
   .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--secondary-background-color, #eee); }
   .badge.new { background: var(--primary-color); color: var(--text-primary-color, #fff); }
   table { width: 100%; border-collapse: collapse; }
@@ -204,7 +209,7 @@ class JukeBPanel extends HTMLElement {
       </div>
 
       <div class="tabs" role="tablist">
-        <button role="tab" data-tab="tags">Tags</button>
+        <button role="tab" data-tab="tags">Tags <span id="tabDot" class="dot" title="An object is on the reader" hidden></span></button>
         <button role="tab" data-tab="media">Media</button>
         <button role="tab" data-tab="settings">Settings</button>
       </div>
@@ -213,8 +218,9 @@ class JukeBPanel extends HTMLElement {
       <div class="card">
         <h2>Register an object</h2>
         <div class="row">
-          <span class="muted">Last scanned:</span>
+          <span class="muted" id="scanLabel">Last scanned:</span>
           <span id="scanUid" class="uid">none yet</span>
+          <span id="scanDot" class="dot" hidden></span>
           <span id="scanBadge" class="badge" hidden></span>
           <button id="btnUse" disabled>Use this UID</button>
         </div>
@@ -381,10 +387,22 @@ class JukeBPanel extends HTMLElement {
     toggle.disabled = false;
   }
 
+  // The object on the reader right now; a box that went offline cannot report a removal.
+  _presentUid() {
+    return this._status?.online ? this._status.present_uid || null : null;
+  }
+
   _renderScan() {
     const ls = this._status?.last_scanned;
     const uidEl = this.$("scanUid");
     const badge = this.$("scanBadge");
+    const present = this._presentUid();
+    const onReader = !!ls && present === ls.uid;
+    this.$("scanLabel").textContent = onReader ? "On the reader:" : "Last scanned:";
+    this.$("scanDot").hidden = !onReader;
+    this.$("tabDot").hidden = !present;
+    uidEl.classList.toggle("present", onReader);
+    this._markPresentRow(present);
     if (!ls) { uidEl.textContent = "none yet"; badge.hidden = true; this.$("btnUse").disabled = true; return; }
     const known = !!this._tags[ls.uid];
     uidEl.textContent = ls.uid;
@@ -400,6 +418,14 @@ class JukeBPanel extends HTMLElement {
     }
   }
 
+  _markPresentRow(present) {
+    this.$("tagRows").querySelectorAll("tr[data-uid]").forEach((tr) => {
+      const on = tr.dataset.uid === present;
+      tr.classList.toggle("present", on);
+      tr.querySelector(".dot").hidden = !on;
+    });
+  }
+
   // ---------- tags ----------
 
   _renderTags() {
@@ -407,7 +433,7 @@ class JukeBPanel extends HTMLElement {
     this.$("tagRows").innerHTML = uids.length
       ? uids.map((uid) => {
           const t = this._tags[uid];
-          return `<tr><td>${esc(t.name)}</td><td><span class="uid">${esc(uid)}</span></td><td>${esc(t.media.path)}</td>
+          return `<tr data-uid="${esc(uid)}"><td>${esc(t.name)} <span class="dot" title="On the reader" hidden></span></td><td><span class="uid">${esc(uid)}</span></td><td>${esc(t.media.path)}</td>
             <td class="actions"><button data-act="play" data-uid="${esc(uid)}">Play</button>
             <button data-act="edit" data-uid="${esc(uid)}">Edit</button>
             <button data-act="del" data-uid="${esc(uid)}" class="danger">Delete</button></td></tr>`;

@@ -26,7 +26,7 @@ async def test_status_initial(hass, ws):
     assert r["online"] is False and r["last_seen"] is None
     assert r["current_uid"] is None and r["now_playing"] is None and r["last_error"] is None
     assert r["webhook_id"] == "jukeb"
-    assert r["integration_version"] == "3.0.1"
+    assert r["integration_version"] == "3.1.0"
 
 
 async def test_status_after_events(hass, ws, hass_client_no_auth):
@@ -39,6 +39,10 @@ async def test_status_after_events(hass, ws, hass_client_no_auth):
     r = (await call(ws, "jukeb/status"))["result"]
     assert r["online"] is True and r["rssi"] == -50 and r["version"] == "2.0.0"
     assert r["last_scanned"]["uid"] == "ZZ:99" and r["last_scanned"]["known"] is False
+    assert r["present_uid"] == "ZZ:99"
+    await client.post("/api/webhook/jukeb", json={"event": "absent", "uid": "ZZ:99"})
+    await hass.async_block_till_done()
+    assert (await call(ws, "jukeb/status"))["result"]["present_uid"] is None
 
 
 async def test_tags_crud(hass, ws):

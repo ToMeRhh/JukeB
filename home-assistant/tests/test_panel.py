@@ -15,7 +15,7 @@ async def test_panel_registered_and_static_served(hass, setup_jukeb, hass_client
     # The ?v= query is the only cache-buster browsers see: it must follow VERSION, and VERSION
     # must be bumped with every panel change.
     assert panel.config["_panel_custom"]["module_url"] == f"/api/jukeb/static/jukeb-panel.js?v={VERSION}"
-    assert VERSION == "3.0.1"
+    assert VERSION == "3.1.0"
 
     client = await hass_client()
     resp = await client.get("/api/jukeb/static/jukeb-panel.js")

@@ -3,7 +3,7 @@
 from homeassistant.const import Platform
 
 DOMAIN = "jukeb"
-VERSION = "3.0.1"
+VERSION = "3.1.0"
 MANUFACTURER = "JukeB"
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SWITCH]
 SIGNAL_UPDATE = f"{DOMAIN}_update"  # dispatcher: box event, offline timeout or settings change

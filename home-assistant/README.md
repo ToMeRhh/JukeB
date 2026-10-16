@@ -82,9 +82,11 @@ The status bar at the top has a fixed layout: the Enabled toggle, Box (Online/Of
 and last seen), Signal, Firmware, Playback (Active, or Inactive with the reason: off or
 outside the active hours), Playing, and an error line. Below it are three tabs.
 
-- **Tags** — *Register an object* shows the last scanned UID. Tap an object on
-  the box, press *Use this UID*, give it a name, pick a file, *Add tag*. The
-  table lists every tag with Play (on the speaker), Edit and Delete. Scans are
+- **Tags** — *Register an object* shows the last scanned UID. While an object
+  sits on the reader it reads *On the reader*, its tag row is highlighted and the
+  Tags tab shows a pulsing dot, until the object is removed (or the box goes
+  offline). Tap an object on the box, press *Use this UID*, give it a name,
+  pick a file, *Add tag*. The table lists every tag with Play (on the speaker), Edit and Delete. Scans are
   recorded even while JukeB is inactive, so you can register tags any time.
 - **Media** — drop MP3 files to upload (max 50 MB each; any file name works,
   including non-Latin scripts). Files are stored in `<media folder>/jukeb/` and
