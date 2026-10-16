@@ -84,7 +84,7 @@ outside the active hours), Playing, and an error line. Below it are three tabs.
 
 - **Tags** — *Register an object* shows the last scanned UID. While an object
   sits on the reader it reads *On the reader*, its tag row is highlighted and the
-  Tags tab shows a pulsing dot, until the object is removed (or the box goes
+  Tags tab shows a pulsing dot, until the object is removed (or the box restarts or goes
   offline). Tap an object on the box, press *Use this UID*, give it a name,
   press *Choose…* to pick a file, *Add tag*. The file dialog lists the library
   with a filter, previews any file in the browser, and uploads new MP3s (the

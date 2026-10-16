@@ -28,11 +28,11 @@ const STYLE = `
   .row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
   .uid { font-family: monospace; font-size: 15px; padding: 2px 6px; border-radius: 4px; background: var(--secondary-background-color, #f3f3f3); }
   .uid.fresh { outline: 2px solid var(--primary-color); }
-  .uid.present { outline: 2px solid var(--primary-color); background: color-mix(in srgb, var(--primary-color) 15%, transparent); }
+  .uid.present { outline: 2px solid var(--primary-color); background: var(--secondary-background-color, #e3f2fd); background: color-mix(in srgb, var(--primary-color) 15%, transparent); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary-color); animation: pulse 1.2s ease-in-out infinite; }
   .dot[hidden] { display: none; }
   @keyframes pulse { 50% { opacity: .3; } }
-  tr.present td { background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
+  tr.present td { background: var(--secondary-background-color, #e3f2fd); background: color-mix(in srgb, var(--primary-color) 10%, transparent); }
   .badge { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: var(--secondary-background-color, #eee); }
   .badge.new { background: var(--primary-color); color: var(--text-primary-color, #fff); }
   table { width: 100%; border-collapse: collapse; }
@@ -90,7 +90,7 @@ const STYLE = `
   .dlg-list.over { outline: 2px dashed var(--primary-color); outline-offset: -4px; }
   .pick { display: flex; align-items: center; gap: 8px; padding: 6px 16px; cursor: pointer; }
   .pick:hover { background: var(--secondary-background-color, #f5f5f5); }
-  .pick[aria-selected=true] { background: color-mix(in srgb, var(--primary-color) 15%, transparent); }
+  .pick[aria-selected=true] { background: var(--secondary-background-color, #e3f2fd); background: color-mix(in srgb, var(--primary-color) 15%, transparent); }
   .pick .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pick .size { font-size: 12px; color: var(--secondary-text-color); white-space: nowrap; }
   .dlg-empty { padding: 16px; }
@@ -152,6 +152,7 @@ class JukeBPanel extends HTMLElement {
     window.removeEventListener("location-changed", this._onLocation);
     window.removeEventListener("popstate", this._onLocation);
     this._stopPreview(); // a detached <audio> keeps playing
+    if (this.$("picker")?.open) this.$("picker").close();
   }
 
   _onOwnPage() {
@@ -606,6 +607,10 @@ class JukeBPanel extends HTMLElement {
     if (!dlg?.open) return;
     const q = this.$("pickFilter").value.trim().toLowerCase();
     const files = this._files.filter((f) => !q || f.path.toLowerCase().includes(q));
+    // Re-rendering (e.g. Play turning into Pause) must not drop keyboard focus.
+    const active = this.shadowRoot.activeElement;
+    const focusRow = this.$("pickList").contains(active) ? active.closest(".pick") : null;
+    const focus = focusRow && { path: focusRow.dataset.path, button: active.tagName === "BUTTON" };
     this.$("pickList").innerHTML = files.length
       ? files.map((f) => {
           const sel = f.path === this._pickSel;
@@ -618,6 +623,10 @@ class JukeBPanel extends HTMLElement {
         }).join("")
       : `<div class="dlg-empty muted">${this._files.length ? "No files match." : "No files yet. Upload an MP3 to get started."}</div>`;
     this.$("pickSelect").disabled = !this._pickSel || !this._files.some((f) => f.path === this._pickSel);
+    if (focus) {
+      const row = [...this.$("pickList").querySelectorAll(".pick")].find((r) => r.dataset.path === focus.path);
+      (focus.button ? row?.querySelector("button") : row)?.focus();
+    }
   }
 
   async _pickerUpload(fileList) {
@@ -694,7 +703,8 @@ class JukeBPanel extends HTMLElement {
 
   _renderFiles() {
     if (this._renaming && !this._files.some((f) => f.path === this._renaming)) this._renaming = null;
-    const hadFocus = this.shadowRoot.activeElement?.id === "rnInput";
+    const active = this.shadowRoot.activeElement;
+    const caret = active?.id === "rnInput" ? [active.selectionStart, active.selectionEnd] : null;
     this.$("fileRows").innerHTML = this._files.length
       ? this._files.map((f) => {
           if (f.path === this._renaming) {
@@ -711,7 +721,8 @@ class JukeBPanel extends HTMLElement {
             <button data-act="del" data-path="${esc(f.path)}" class="danger">Delete</button></td></tr>`;
         }).join("")
       : `<tr><td colspan="3" class="muted">No files yet.</td></tr>`;
-    if (hadFocus) this.$("rnInput")?.focus();
+    const input = caret && this.$("rnInput");
+    if (input) { input.focus(); input.setSelectionRange(...caret); }
   }
 
   _startRename(path) {

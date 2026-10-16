@@ -39,7 +39,11 @@ class JukeBData:
     def touch(self, payload: dict[str, Any], now: datetime) -> None:
         """Record an event from the box: online status, firmware version, offline timer."""
         previous_version = self.box.version
+        previous_uptime = self.box.uptime_s
         self.box.touch(payload, now)
+        if previous_uptime is not None and self.box.uptime_s is not None and self.box.uptime_s < previous_uptime:
+            # Rebooted: it never reported removing what it had, and re-reports what is still there.
+            self.controller.present_uid = None
         if self.box.version != previous_version:
             dr.async_get(self.hass).async_update_device(self.device_id, sw_version=self.box.version)
         if self._offline_cancel is not None:
@@ -50,6 +54,7 @@ class JukeBData:
     @callback
     def _offline_timeout(self, _now: datetime) -> None:
         self._offline_cancel = None
+        self.controller.present_uid = None  # an offline box cannot report a removal
         self.notify()
 
     @callback
