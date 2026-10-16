@@ -92,7 +92,7 @@ outside the active hours), Playing, and an error line. Below it are three tabs.
   including non-Latin scripts). Files are stored in `<media folder>/jukeb/` and
   play as `media-source://media_source/<media dir>/jukeb/<file>`. Play previews
   the file in your browser through the player above the list; the speaker is not
-  involved. Deleting a file that a tag uses is refused.
+  involved, and the preview stops when you switch tabs or leave the page. Deleting a file that a tag uses is refused.
 - **Settings** — speaker, an optional volume to set before each play (untick to
   leave the speaker's volume alone), what happens when the object is removed
   (keep playing / pause / stop), the grace period that ignores brief lifts, and

@@ -96,7 +96,9 @@ class JukeBPanel extends HTMLElement {
     this._playerCount = -1;
     this._previewPath = null;
     this._previewPlaying = false;
+    this._previewSeq = 0; // bumped by every stop: a preview still resolving its URL must not start
     this._rendered = false;
+    this._onLocation = () => { if (!this._onOwnPage()) this._stopPreview(); };
   }
 
   set hass(hass) {
@@ -111,12 +113,23 @@ class JukeBPanel extends HTMLElement {
   }
 
   connectedCallback() {
+    // HA may keep a panel alive while another page shows; its router fires location-changed.
+    window.addEventListener("location-changed", this._onLocation);
+    window.addEventListener("popstate", this._onLocation);
     if (this._hass) this._start();
   }
 
   disconnectedCallback() {
     clearInterval(this._timer);
     this._timer = null;
+    window.removeEventListener("location-changed", this._onLocation);
+    window.removeEventListener("popstate", this._onLocation);
+    this._stopPreview(); // a detached <audio> keeps playing
+  }
+
+  _onOwnPage() {
+    const path = this.panel?.url_path || "jukeb";
+    return location.pathname === `/${path}` || location.pathname.startsWith(`/${path}/`);
   }
 
   async _start() {
@@ -348,6 +361,7 @@ class JukeBPanel extends HTMLElement {
   }
 
   _showTab(name) {
+    this._stopPreview(); // previews belong to the tab they started on
     this.shadowRoot.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
     this.shadowRoot.querySelectorAll("section[data-panel]").forEach((sec) => { sec.hidden = sec.dataset.panel !== name; });
     try { localStorage.setItem(TAB_KEY, name); } catch (_) { /* ignore */ }
@@ -526,14 +540,24 @@ class JukeBPanel extends HTMLElement {
       : `<tr><td colspan="3" class="muted">No files yet.</td></tr>`;
   }
 
+  _stopPreview() {
+    this._previewSeq++;
+    const audio = this.$("preview");
+    if (!audio || audio.paused) return;
+    audio.pause();
+    audio.currentTime = 0;
+  }
+
   async _preview(path) {
     const audio = this.$("preview");
     if (path === this._previewPath && audio.getAttribute("src")) { audio.play(); return; }
     const file = this._files.find((f) => f.path === path);
     if (!file) return;
+    const seq = this._previewSeq;
     try {
       // HA signs a short-lived URL for the file; the browser streams it directly.
       const r = await this._ws({ type: "media_source/resolve_media", media_content_id: file.uri });
+      if (seq !== this._previewSeq) return;
       this._previewPath = path;
       audio.src = r.url;
       await audio.play();
