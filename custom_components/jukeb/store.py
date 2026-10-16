@@ -232,3 +232,12 @@ class JukeBStore:
 
     def tags_using(self, path: str) -> list[tuple[str, Tag]]:
         return [(uid, tag) for uid, tag in self.tags.items() if tag.media_path == path]
+
+    async def async_rename_media(self, old_path: str, new_path: str) -> list[str]:
+        """Point every tag that uses old_path at new_path; returns their uids."""
+        uids = [uid for uid, _ in self.tags_using(old_path)]
+        for uid in uids:
+            self._data["tags"][uid]["media"]["path"] = new_path
+        if uids:
+            await self._async_save()
+        return uids

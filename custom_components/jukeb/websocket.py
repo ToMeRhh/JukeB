@@ -132,6 +132,22 @@ async def ws_media_delete(hass: HomeAssistant, connection: websocket_api.ActiveC
     connection.send_result(msg["id"], {})
 
 
+@websocket_api.require_admin
+@websocket_api.websocket_command(
+    {vol.Required("type"): "jukeb/media/rename", vol.Required("path"): str, vol.Required("new_name"): str}
+)
+@websocket_api.async_response
+async def ws_media_rename(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    data = get_data(hass)
+    try:
+        path = await data.media.async_rename(msg["path"], msg["new_name"])
+    except MediaError as err:
+        _send_invalid(connection, msg["id"], err)
+        return
+    uids = await data.store.async_rename_media(msg["path"], path)
+    connection.send_result(msg["id"], {"path": path, "tags": uids})
+
+
 COMMANDS = (
     ws_status,
     ws_tags_list,
@@ -142,6 +158,7 @@ COMMANDS = (
     ws_settings_set,
     ws_media_list,
     ws_media_delete,
+    ws_media_rename,
 )
 
 

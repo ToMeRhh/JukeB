@@ -98,3 +98,21 @@ class MediaLibrary:
 
     async def async_delete(self, path: Any) -> None:
         await self._hass.async_add_executor_job(self._delete, path)
+
+    def _rename(self, path: str, name: str) -> None:
+        source = self._resolve(path)
+        if not source.is_file():
+            raise MediaError("file not found")
+        target = self._resolve(name)
+        if target.name == source.name:
+            raise MediaError("the file already has that name")
+        # On a case-insensitive disk a case-only rename "exists" as the source itself.
+        if target.exists() and not os.path.samefile(source, target):
+            raise MediaError(f"{name} already exists")
+        os.rename(source, target)
+
+    async def async_rename(self, path: Any, new_name: Any) -> str:
+        """Rename a file; returns the stored (sanitised) new name."""
+        name = sanitize_filename(new_name)
+        await self._hass.async_add_executor_job(self._rename, path, name)
+        return name

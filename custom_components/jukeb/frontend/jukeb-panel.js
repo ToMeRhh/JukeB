@@ -98,6 +98,8 @@ const STYLE = `
   .dlg-foot .spacer { flex: 1; }
   #pickUploads:not(:empty) { padding: 0 16px 8px; }
   #pickMsg:empty { display: none; }
+  .rename { display: flex; align-items: center; gap: 4px; }
+  .rename input { padding: 4px 6px; }
 `;
 
 class JukeBPanel extends HTMLElement {
@@ -113,6 +115,9 @@ class JukeBPanel extends HTMLElement {
     this._editing = null;
     this._formFile = "";
     this._pickSel = null;
+    this._renaming = null; // media file being renamed inline
+    this._renameDraft = "";
+    this._renameBusy = false;
     this._lastScanUid = null;
     this._lastScanAt = null;
     this._playerCount = -1;
@@ -384,6 +389,15 @@ class JukeBPanel extends HTMLElement {
       if (btn.dataset.act === "play") this._preview(btn.dataset.path);
       if (btn.dataset.act === "pause") this.$("preview").pause();
       if (btn.dataset.act === "del") this._deleteFile(btn.dataset.path);
+      if (btn.dataset.act === "rename") this._startRename(btn.dataset.path);
+      if (btn.dataset.act === "rn-save") this._saveRename();
+      if (btn.dataset.act === "rn-cancel") this._cancelRename();
+    };
+    this.$("fileRows").oninput = (ev) => { if (ev.target.id === "rnInput") this._renameDraft = ev.target.value; };
+    this.$("fileRows").onkeydown = (ev) => {
+      if (ev.target.id !== "rnInput") return;
+      if (ev.key === "Enter") { ev.preventDefault(); this._saveRename(); }
+      if (ev.key === "Escape") { ev.preventDefault(); this._cancelRename(); }
     };
     const audio = this.$("preview");
     for (const evName of ["play", "pause", "ended", "emptied"]) {
@@ -679,16 +693,64 @@ class JukeBPanel extends HTMLElement {
   // ---------- media ----------
 
   _renderFiles() {
+    if (this._renaming && !this._files.some((f) => f.path === this._renaming)) this._renaming = null;
+    const hadFocus = this.shadowRoot.activeElement?.id === "rnInput";
     this.$("fileRows").innerHTML = this._files.length
       ? this._files.map((f) => {
+          if (f.path === this._renaming) {
+            return `<tr data-path="${esc(f.path)}"><td><div class="rename"><input id="rnInput" aria-label="New name for ${esc(f.path)}"
+              value="${esc(this._renameDraft)}" autocomplete="off" spellcheck="false"><span class="muted">.mp3</span></div></td><td>${fmtSize(f.size)}</td>
+              <td class="actions"><button data-act="rn-save" class="primary">Save</button> <button data-act="rn-cancel">Cancel</button></td></tr>`;
+          }
           const playing = this._previewPlaying && f.path === this._previewPath;
           const ctl = playing
             ? `<button data-act="pause" data-path="${esc(f.path)}" class="primary">Pause</button>`
             : `<button data-act="play" data-path="${esc(f.path)}">Play</button>`;
-          return `<tr><td>${esc(f.path)}</td><td>${fmtSize(f.size)}</td>
-            <td class="actions">${ctl} <button data-act="del" data-path="${esc(f.path)}" class="danger">Delete</button></td></tr>`;
+          return `<tr data-path="${esc(f.path)}"><td>${esc(f.path)}</td><td>${fmtSize(f.size)}</td>
+            <td class="actions">${ctl} <button data-act="rename" data-path="${esc(f.path)}">Rename</button>
+            <button data-act="del" data-path="${esc(f.path)}" class="danger">Delete</button></td></tr>`;
         }).join("")
       : `<tr><td colspan="3" class="muted">No files yet.</td></tr>`;
+    if (hadFocus) this.$("rnInput")?.focus();
+  }
+
+  _startRename(path) {
+    this._renaming = path;
+    this._renameDraft = path.replace(/\.mp3$/i, "");
+    this._renderFiles();
+    const input = this.$("rnInput");
+    input.focus();
+    input.select();
+  }
+
+  _cancelRename() {
+    this._renaming = null;
+    this._renderFiles();
+  }
+
+  async _saveRename() {
+    const path = this._renaming;
+    if (!path || this._renameBusy) return;
+    const stem = this._renameDraft.trim().replace(/\.mp3$/i, "");
+    if (!stem) return this._say("fileMsg", "Name is required", false);
+    const newName = `${stem}.mp3`;
+    if (newName === path) return this._cancelRename();
+    this._renameBusy = true;
+    try {
+      const r = await this._ws({ type: "jukeb/media/rename", path, new_name: newName });
+      // The preview's signed URL points at the old name.
+      if (path === this._previewPath) { this._stopPreview(); const a = this.$("preview"); a.removeAttribute("src"); a.load(); this._previewPath = null; }
+      if (this._formFile === path) this._formFile = r.path;
+      this._renaming = null;
+      await Promise.all([this._refreshFiles(), this._refreshTags()]);
+      const n = r.tags.length;
+      const names = r.tags.map((uid) => this._tags[uid]?.name || uid).join(", ");
+      this._say("fileMsg", `Renamed ${path} to ${r.path}${n ? ` and updated ${n === 1 ? "tag" : "tags"} ${names}` : ""}`, true);
+    } catch (e) {
+      this._say("fileMsg", e.message || String(e), false);
+    } finally {
+      this._renameBusy = false;
+    }
   }
 
   _stopPreview() {

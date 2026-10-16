@@ -149,8 +149,27 @@ async def test_media_delete_refused_when_used(hass, ws):
     assert hass.data[DOMAIN].media.exists("dino.mp3")
 
 
+async def test_media_rename_updates_tags(hass, ws):
+    await call(ws, "jukeb/tags/set", uid="AA:01", name="Dino", media={"type": "file", "path": "dino.mp3"})
+    await call(ws, "jukeb/tags/set", uid="BB:02", name="Cat", media={"type": "file", "path": "cat.mp3"})
+    reply = await call(ws, "jukeb/media/rename", path="dino.mp3", new_name="T-Rex.mp3")
+    assert reply["success"]
+    assert reply["result"] == {"path": "T-Rex.mp3", "tags": ["AA:01"]}
+    files = [f["path"] for f in (await call(ws, "jukeb/media/list"))["result"]["files"]]
+    assert files == ["cat.mp3", "T-Rex.mp3"]
+    tags = (await call(ws, "jukeb/tags/list"))["result"]["tags"]
+    assert tags["AA:01"]["media"]["path"] == "T-Rex.mp3"
+    assert tags["BB:02"]["media"]["path"] == "cat.mp3"
+
+    reply = await call(ws, "jukeb/media/rename", path="T-Rex.mp3", new_name="cat.mp3")
+    assert reply["error"] == {"code": "invalid", "message": "cat.mp3 already exists"}
+    assert (await call(ws, "jukeb/tags/list"))["result"]["tags"]["AA:01"]["media"]["path"] == "T-Rex.mp3"
+
+
 async def test_non_admin_rejected(hass, setup_jukeb, hass_ws_client, hass_read_only_access_token):
     ws = await hass_ws_client(hass, hass_read_only_access_token)
     for msg_type in ("jukeb/status", "jukeb/tags/list", "jukeb/settings/get", "jukeb/media/list"):
         reply = await call(ws, msg_type)
         assert not reply["success"] and reply["error"]["code"] == "unauthorized"
+    reply = await call(ws, "jukeb/media/rename", path="a.mp3", new_name="b.mp3")
+    assert not reply["success"] and reply["error"]["code"] == "unauthorized"
